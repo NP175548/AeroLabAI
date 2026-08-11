@@ -281,6 +281,7 @@ body {
 
 .gradient-text {
   background: linear-gradient(135deg, var(--color-accent-cyan), #38ef7d);
+  background-clip: text; /* standard property for compatibility */
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -414,10 +415,12 @@ input[type="range"] {
   border-radius: 5px;
   background: rgba(255, 255, 255, 0.15);
   outline: none;
+  appearance: none;
   -webkit-appearance: none;
 }
 
 input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
   -webkit-appearance: none;
   width: 16px;
   height: 16px;
