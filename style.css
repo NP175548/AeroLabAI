@@ -619,9 +619,22 @@ input[type="range"]::-webkit-slider-thumb {
 
 .key-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-areas:
+    "a b c"
+    "d e f"
+    "g h h";
   gap: 18px;
 }
+
+.key-card:nth-child(1) { grid-area: a; }
+.key-card:nth-child(2) { grid-area: b; }
+.key-card:nth-child(3) { grid-area: c; }
+.key-card:nth-child(4) { grid-area: d; }
+.key-card:nth-child(5) { grid-area: e; }
+.key-card:nth-child(6) { grid-area: f; }
+.key-card:nth-child(7) { grid-area: g; }
+.key-card:nth-child(8) { grid-area: h; }
 
 .key-card {
   padding: 20px;
