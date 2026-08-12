@@ -1,17 +1,22 @@
 // script.js
 
 /**
- * AeroLab PRO — Aerodynamics Simulation Engine
+ * AeroLab — Aerodynamics Simulation Engine
  * Rigorous fluid mechanics model and accurate HTML5 Canvas renderer
  */
 
-// Flight Dynamics State
+// Flight Dynamics & Display State
 const state = {
     aoa: 4.0,           // Angle of Attack (deg)
     speed: 120,         // True Airspeed v (m/s)
     area: 125,          // Wing Area S (m²)
     mass: 65000,        // Aircraft Mass m (kg)
     density: 1.225,     // Air Density rho (kg/m³)
+
+    // Display Toggles
+    showVectors: true,
+    showPressureGlow: true,
+    showParticles: true,
 
     // Airfoil Constant Parameters (NACA 0012 baseline)
     cl0: 0.10,          // Zero-AoA Lift Coefficient
@@ -21,7 +26,7 @@ const state = {
     aspectRatio: 8.5,   // Wing Aspect Ratio AR
     oswaldEff: 0.82,    // Oswald Efficiency Factor e
 
-    // Derived Dynamic Telemetry
+    // Derived Telemetry
     cl: 0,
     cd: 0,
     lift: 0,            // Force L (N)
@@ -29,7 +34,11 @@ const state = {
     q: 0,               // Dynamic Pressure (Pa)
     ldRatio: 0,
     isStalled: false,
-    reqLift: 0          // Required force to balance weight W = m*g (N)
+    reqLift: 0,         // Required force to balance weight W = m*g (N)
+
+    // Smooth Vector Arrow Lengths
+    smoothLiftLength: 0,
+    smoothDragLength: 0
 };
 
 // Aircraft Presets Catalog
@@ -49,30 +58,30 @@ class StreamParticle {
     reset(w, h, randomX = false) {
         this.x = randomX ? Math.random() * w : -10;
         this.y = Math.random() * h;
-        this.baseSpeed = state.speed * 0.06 + 2;
         this.size = Math.random() * 1.8 + 1.2;
-        this.alpha = Math.random() * 0.5 + 0.3;
+        this.alpha = Math.random() * 0.5 + 0.35;
     }
 
     update(w, h, foilX, foilY, chord) {
-        const rad = (-state.aoa * Math.PI) / 180;
+        // Pitch Angle Correction: Canvas pitch angle is (state.aoa * PI / 180)
+        const rad = (state.aoa * Math.PI) / 180;
         
         // Translate particle relative to wing center
         const dx = this.x - foilX;
         const dy = this.y - foilY;
 
-        // Un-rotate relative coordinates to evaluate profile collision
+        // Un-rotate particle coordinates relative to wing coordinate frame
         const localX = dx * Math.cos(-rad) - dy * Math.sin(-rad);
         const localY = dx * Math.sin(-rad) + dy * Math.cos(-rad);
 
         const halfChord = chord * 0.5;
         const thickness = chord * 0.12;
 
-        // Particle Interaction with Boundary Layer Contour
+        // Particle Interaction with Airfoil Contour
         if (localX > -halfChord * 1.1 && localX < halfChord * 1.1) {
             const normX = Math.max(0, Math.min(1, (localX + halfChord) / chord));
             
-            // NACA 0012 Surface Equation
+            // NACA 0012 Profile Equation
             const yt = 5 * thickness * (
                 0.2969 * Math.sqrt(normX) - 
                 0.1260 * normX - 
@@ -81,19 +90,19 @@ class StreamParticle {
                 0.1015 * Math.pow(normX, 4)
             );
 
-            // Flow Deflection along upper and lower surface profiles
+            // Flow Deflection along upper and lower surfaces
             if (localY < 0 && localY > -yt - 28) {
-                // Suction side acceleration (Upper)
+                // Suction Side (Upper Surface)
                 const targetY = -yt - 6;
                 this.y += (targetY - localY) * 0.15;
                 
                 if (state.isStalled && localX > 0) {
-                    // Separated flow turbulence eddy simulation
+                    // Flow Separation Turbulence in Stall
                     this.y += (Math.random() - 0.5) * 6;
                     this.x += (Math.random() - 0.5) * 3;
                 }
             } else if (localY >= 0 && localY < yt + 28) {
-                // Pressure side deflection (Lower)
+                // Pressure Side (Lower Surface)
                 const targetY = yt + 6;
                 this.y += (targetY - localY) * 0.15;
             }
@@ -102,7 +111,7 @@ class StreamParticle {
         // Advance particle downstream
         this.x += state.speed * 0.05 + 2.5;
 
-        // Reset if boundary exceeded
+        // Reset if offscreen
         if (this.x > w + 15 || this.y < -20 || this.y > h + 20) {
             this.reset(w, h, false);
         }
@@ -117,13 +126,13 @@ class StreamParticle {
 }
 
 let particles = [];
-let animFrameId = null;
 
 // Initialize Application
 document.addEventListener('DOMContentLoaded', () => {
     initTheme();
     bindInputs();
     bindPresets();
+    bindToggles();
     updatePhysics();
     initCanvas();
     window.addEventListener('resize', initCanvas);
@@ -139,7 +148,20 @@ function initTheme() {
     });
 }
 
-// Bind Sliders and Direct Events
+// Bind Display Toggle Switches
+function bindToggles() {
+    document.getElementById('toggle-vectors').addEventListener('change', (e) => {
+        state.showVectors = e.target.checked;
+    });
+    document.getElementById('toggle-pressure').addEventListener('change', (e) => {
+        state.showPressureGlow = e.target.checked;
+    });
+    document.getElementById('toggle-particles').addEventListener('change', (e) => {
+        state.showParticles = e.target.checked;
+    });
+}
+
+// Bind Sliders and Input Events
 function bindInputs() {
     const sliderMap = [
         { id: 'slider-aoa', key: 'aoa' },
@@ -190,26 +212,25 @@ function syncControls() {
     document.getElementById('slider-density').value = state.density;
 }
 
-// Core Physics Calculation Engine
+// Core Physics Engine
 function updatePhysics() {
     const alpha = state.aoa;
 
-    // 1. Lift Coefficient Calculation (Linear slope + stall region)
+    // 1. Lift Coefficient (Linear range + Stall Region)
     if (alpha <= state.aoaStall) {
         state.cl = state.cl0 + state.cla * alpha;
         state.isStalled = false;
     } else {
-        // Post-stall lift breakdown
         const clPeak = state.cl0 + state.cla * state.aoaStall;
         const stallDrop = (alpha - state.aoaStall) * 0.075;
         state.cl = Math.max(0.15, clPeak - stallDrop);
         state.isStalled = true;
     }
 
-    // 2. Induced Drag Calculation C_Di = (C_L^2) / (pi * AR * e)
+    // 2. Induced Drag C_Di = (C_L^2) / (pi * AR * e)
     const cdi = Math.pow(state.cl, 2) / (Math.PI * state.aspectRatio * state.oswaldEff);
 
-    // 3. Stall Penalty Drag
+    // 3. Stall Induced Drag Penalty
     const stallDrag = state.isStalled ? Math.pow(alpha - state.aoaStall, 1.7) * 0.012 : 0;
 
     // 4. Total Drag Coefficient C_D
@@ -218,21 +239,20 @@ function updatePhysics() {
     // 5. Dynamic Pressure q = 0.5 * rho * v^2
     state.q = 0.5 * state.density * Math.pow(state.speed, 2);
 
-    // 6. Aerodynamic Forces (in Newtons)
+    // 6. Aerodynamic Forces (N)
     state.lift = state.q * state.area * state.cl;
     state.drag = state.q * state.area * state.cd;
     state.ldRatio = state.drag > 0 ? state.lift / state.drag : 0;
 
-    // 7. Weight Equilibrium Requirements W = m * g
+    // 7. Equilibrium Weight W = m * g
     const g = 9.81;
     state.reqLift = state.mass * g;
 
     updateUI(cdi);
 }
 
-// Update DOM Telemetry Elements
+// Update UI Values
 function updateUI(cdi) {
-    // Controls Values
     document.getElementById('val-aoa').textContent = state.aoa.toFixed(1);
     document.getElementById('val-speed').textContent = Math.round(state.speed);
     document.getElementById('val-knots').textContent = Math.round(state.speed * 1.94384);
@@ -240,30 +260,25 @@ function updateUI(cdi) {
     document.getElementById('val-mass').textContent = state.mass.toLocaleString();
     document.getElementById('val-density').textContent = state.density.toFixed(3);
 
-    // HUD Canvas Values
     document.getElementById('hud-aoa').textContent = `${state.aoa.toFixed(1)}°`;
     document.getElementById('hud-speed').textContent = `${Math.round(state.speed)} m/s`;
     document.getElementById('hud-q').textContent = `${(state.q / 1000).toFixed(2)} kPa`;
 
-    // Force Conversions (kN)
     const liftKN = state.lift / 1000;
     const dragKN = state.drag / 1000;
     const reqLiftKN = state.reqLift / 1000;
 
-    // Telemetry Cards
     document.getElementById('calc-lift').textContent = `${liftKN.toFixed(1)} kN`;
     document.getElementById('calc-drag').textContent = `${dragKN.toFixed(1)} kN`;
     document.getElementById('calc-cl').textContent = state.cl.toFixed(3);
-    document.getElementById('calc-cd').textContent = `C_D: ${state.cd.toFixed(3)}`;
+    document.getElementById('calc-cd').innerHTML = `C<sub>D</sub>: ${state.cd.toFixed(3)}`;
     document.getElementById('calc-ld').textContent = state.ldRatio.toFixed(1);
     document.getElementById('calc-weight-req').textContent = `Req Weight: ${reqLiftKN.toFixed(1)} kN`;
 
-    // Hero Header
     document.getElementById('hero-lift-val').textContent = `${liftKN.toFixed(1)} kN`;
     document.getElementById('hero-drag-val').textContent = `${dragKN.toFixed(1)} kN`;
     document.getElementById('hero-ld-val').textContent = state.ldRatio.toFixed(1);
 
-    // Stall Status Badges
     const badge = document.getElementById('stall-badge');
     const badgeText = document.getElementById('stall-badge-text');
     const heroStatus = document.getElementById('hero-status-val');
@@ -280,7 +295,6 @@ function updateUI(cdi) {
         heroStatus.className = 'telemetry-value status-good';
     }
 
-    // Physics Equation Breakdown Card
     document.getElementById('eq-rho-val').textContent = `${state.density.toFixed(3)} kg/m³`;
     document.getElementById('eq-v-val').textContent = `${Math.round(state.speed)} m/s`;
     document.getElementById('eq-q-val').textContent = `${(state.q / 1000).toFixed(2)} kPa`;
@@ -295,7 +309,7 @@ function updateUI(cdi) {
     document.getElementById('eq-drag-val').textContent = `${dragKN.toFixed(1)} kN`;
 }
 
-// Canvas HD Initialization
+// Canvas Initialization
 function initCanvas() {
     const canvas = document.getElementById('airfoil-canvas');
     const rect = canvas.parentNode.getBoundingClientRect();
@@ -307,18 +321,17 @@ function initCanvas() {
     const ctx = canvas.getContext('2d');
     ctx.scale(dpr, dpr);
 
-    // Populate Particles
     particles = Array.from({ length: 120 }, () => new StreamParticle(rect.width, rect.height));
 }
 
-// Main Render Loop
+// Main Animation Loop
 function renderLoop() {
     renderCanvas();
     renderBgParticles();
     requestAnimationFrame(renderLoop);
 }
 
-// Render Airfoil & Flow Canvas
+// Render Airfoil & Visual Overlays
 function renderCanvas() {
     const canvas = document.getElementById('airfoil-canvas');
     if (!canvas) return;
@@ -334,40 +347,46 @@ function renderCanvas() {
     const foilY = h * 0.50;
     const chord = Math.min(w, h) * 0.42;
 
-    // 1. Draw Particle Streamlines
-    particles.forEach(p => {
-        p.update(w, h, foilX, foilY, chord);
-        p.draw(ctx);
-    });
+    // 1. Draw Streamline Particles (If Toggled)
+    if (state.showParticles) {
+        particles.forEach(p => {
+            p.update(w, h, foilX, foilY, chord);
+            p.draw(ctx);
+        });
+    }
 
-    // 2. Draw NACA 0012 Airfoil Profile
+    // 2. Airfoil Pitch Alignment:
+    // Standard Canvas 2D: +Y is DOWN.
+    // For positive AoA (nose pointing UP), the leading edge (at local -chord/2) must move UP (-Y).
+    // Rotation angle = +(state.aoa * PI / 180).
+    const pitchRad = (state.aoa * Math.PI) / 180;
+
     ctx.save();
     ctx.translate(foilX, foilY);
-    
-    // Pitch Angle: In Canvas 2D, negative rotation tilts nose UP (-AoA) relative to incoming left-to-right wind!
-    const pitchRad = (-state.aoa * Math.PI) / 180;
     ctx.rotate(pitchRad);
 
-    // Dynamic Pressure Differential Field Glows
-    const topGlow = ctx.createRadialGradient(0, -15, 2, 0, -15, chord * 0.5);
-    topGlow.addColorStop(0, state.isStalled ? 'rgba(239, 68, 68, 0.35)' : 'rgba(0, 136, 255, 0.30)');
-    topGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
-    ctx.fillStyle = topGlow;
-    ctx.fillRect(-chord, -chord, chord * 2, chord);
+    // Dynamic Pressure Field Gradient (If Toggled)
+    if (state.showPressureGlow) {
+        const topGlow = ctx.createRadialGradient(0, -15, 2, 0, -15, chord * 0.55);
+        topGlow.addColorStop(0, state.isStalled ? 'rgba(239, 68, 68, 0.40)' : 'rgba(0, 136, 255, 0.35)');
+        topGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = topGlow;
+        ctx.fillRect(-chord, -chord, chord * 2, chord);
 
-    const botGlow = ctx.createRadialGradient(0, 15, 2, 0, 15, chord * 0.5);
-    botGlow.addColorStop(0, 'rgba(239, 68, 68, 0.28)');
-    botGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
-    ctx.fillStyle = botGlow;
-    ctx.fillRect(-chord, 0, chord * 2, chord);
+        const botGlow = ctx.createRadialGradient(0, 15, 2, 0, 15, chord * 0.55);
+        botGlow.addColorStop(0, 'rgba(239, 68, 68, 0.30)');
+        botGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = botGlow;
+        ctx.fillRect(-chord, 0, chord * 2, chord);
+    }
 
-    // Plot NACA 0012 Geometry
+    // Plot NACA 0012 Airfoil Profile
     ctx.beginPath();
     ctx.fillStyle = '#111827';
     ctx.strokeStyle = '#00f0ff';
     ctx.lineWidth = 2.5;
 
-    // Upper Profile Contour
+    // Upper Contour
     for (let i = 0; i <= 100; i++) {
         const xNorm = i / 100;
         const x = (xNorm - 0.5) * chord;
@@ -382,7 +401,7 @@ function renderCanvas() {
         else ctx.lineTo(x, -yt);
     }
 
-    // Lower Profile Contour
+    // Lower Contour
     for (let i = 100; i >= 0; i--) {
         const xNorm = i / 100;
         const x = (xNorm - 0.5) * chord;
@@ -411,46 +430,87 @@ function renderCanvas() {
 
     ctx.restore();
 
-    // 3. Draw Aerodynamic Vector Arrows
-    const liftScale = Math.min(130, (state.lift / 1000) * 0.08);
-    const dragScale = Math.min(90, (state.drag / 1000) * 0.40);
+    // 3. Draw Smoothed Aerodynamic Force Vectors (If Toggled)
+    if (state.showVectors) {
+        // Target vector lengths (bounded)
+        const targetLiftLen = Math.min(130, Math.max(-100, (state.lift / 1000) * 0.08));
+        const targetDragLen = Math.min(100, Math.max(0, (state.drag / 1000) * 0.40));
 
-    // Lift Vector (Points UP perpendicular to airflow)
-    drawVector(ctx, foilX, foilY, foilX, foilY - liftScale, '#00f0ff', `Lift (${(state.lift / 1000).toFixed(1)} kN)`);
-    // Drag Vector (Points DOWNSTREAM / RIGHT parallel to airflow)
-    drawVector(ctx, foilX, foilY, foilX + dragScale, foilY, '#ef4444', `Drag (${(state.drag / 1000).toFixed(1)} kN)`);
+        // Smooth Linear Interpolation (lerp)
+        state.smoothLiftLength += (targetLiftLen - state.smoothLiftLength) * 0.1;
+        state.smoothDragLength += (targetDragLen - state.smoothDragLength) * 0.1;
+
+        // Lift Vector (Points UP perpendicular to relative wind)
+        drawSmoothVector(
+            ctx, foilX, foilY, 
+            foilX, foilY - state.smoothLiftLength, 
+            '#00f0ff', 
+            `Lift (${(state.lift / 1000).toFixed(1)} kN)`
+        );
+
+        // Drag Vector (Points DOWNSTREAM / RIGHT parallel to relative wind)
+        drawSmoothVector(
+            ctx, foilX, foilY, 
+            foilX + state.smoothDragLength, foilY, 
+            '#ef4444', 
+            `Drag (${(state.drag / 1000).toFixed(1)} kN)`
+        );
+    }
 }
 
-// Render Force Vector Arrow Helper
-function drawVector(ctx, fromX, fromY, toX, toY, color, label) {
-    if (Math.hypot(toX - fromX, toY - fromY) < 5) return;
+// Render Smooth Anti-Aliased Vector Arrow
+function drawSmoothVector(ctx, fromX, fromY, toX, toY, color, label) {
+    const dx = toX - fromX;
+    const dy = toY - fromY;
+    const dist = Math.hypot(dx, dy);
+
+    if (dist < 4) return;
 
     const headLen = 10;
-    const angle = Math.atan2(toY - fromY, toX - fromX);
+    const angle = Math.atan2(dy, dx);
 
     ctx.save();
     ctx.strokeStyle = color;
     ctx.fillStyle = color;
     ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
 
+    // Outer Glow Line for Smooth Rendering
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 8;
+
+    // Vector Shaft
     ctx.beginPath();
     ctx.moveTo(fromX, fromY);
     ctx.lineTo(toX, toY);
     ctx.stroke();
 
+    // Arrowhead
     ctx.beginPath();
     ctx.moveTo(toX, toY);
-    ctx.lineTo(toX - headLen * Math.cos(angle - Math.PI / 6), toY - headLen * Math.sin(angle - Math.PI / 6));
-    ctx.lineTo(toX - headLen * Math.cos(angle + Math.PI / 6), toY - headLen * Math.sin(angle + Math.PI / 6));
+    ctx.lineTo(
+        toX - headLen * Math.cos(angle - Math.PI / 6),
+        toY - headLen * Math.sin(angle - Math.PI / 6)
+    );
+    ctx.lineTo(
+        toX - headLen * Math.cos(angle + Math.PI / 6),
+        toY - headLen * Math.sin(angle + Math.PI / 6)
+    );
     ctx.closePath();
     ctx.fill();
 
-    ctx.font = '600 11px JetBrains Mono';
-    ctx.fillText(label, toX + (toX >= fromX ? 8 : -70), toY + (toY < fromY ? -6 : 14));
+    // Text Label
+    ctx.shadowBlur = 0;
+    ctx.font = '600 11px "JetBrains Mono", monospace';
+    const labelX = toX + (dx >= 0 ? 8 : -75);
+    const labelY = toY + (dy < 0 ? -6 : 14);
+    ctx.fillText(label, labelX, labelY);
+
     ctx.restore();
 }
 
-// Render Ambient Background Particles
+// Ambient Background Particles
 function renderBgParticles() {
     const canvas = document.getElementById('bg-particle-canvas');
     if (!canvas) return;

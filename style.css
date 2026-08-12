@@ -4,11 +4,14 @@
 :root {
     --bg-main: #070a12;
     --bg-surface: #0e1424;
-    --bg-card: rgba(18, 26, 44, 0.7);
-    --bg-card-hover: rgba(26, 38, 64, 0.85);
+    --bg-card: rgba(18, 26, 44, 0.75);
+    --bg-card-hover: rgba(26, 38, 64, 0.90);
     
     --border-color: rgba(255, 255, 255, 0.08);
     --border-highlight: rgba(0, 162, 255, 0.35);
+
+    --slider-track: rgba(255, 255, 255, 0.18);
+    --slider-track-border: rgba(255, 255, 255, 0.05);
 
     --text-primary: #f8fafc;
     --text-secondary: #94a3b8;
@@ -33,11 +36,14 @@
 [data-theme="light"] {
     --bg-main: #f1f5f9;
     --bg-surface: #ffffff;
-    --bg-card: rgba(255, 255, 255, 0.85);
+    --bg-card: rgba(255, 255, 255, 0.90);
     --bg-card-hover: #ffffff;
 
-    --border-color: rgba(0, 0, 0, 0.08);
-    --border-highlight: rgba(0, 102, 255, 0.25);
+    --border-color: rgba(0, 0, 0, 0.10);
+    --border-highlight: rgba(0, 102, 255, 0.30);
+
+    --slider-track: rgba(0, 0, 0, 0.18);
+    --slider-track-border: rgba(0, 0, 0, 0.08);
 
     --text-primary: #0f172a;
     --text-secondary: #475569;
@@ -70,7 +76,7 @@ body {
     line-height: 1.5;
 }
 
-/* Ambient Particles Canvas */
+/* Ambient Canvas */
 #bg-particle-canvas {
     position: fixed;
     top: 0;
@@ -92,7 +98,7 @@ body {
     backdrop-filter: var(--glass-backdrop);
     -webkit-backdrop-filter: var(--glass-backdrop);
     border-bottom: 1px solid var(--border-color);
-    padding: 0.75rem 1.5rem;
+    padding: 0.85rem 1.5rem;
 }
 
 .nav-container {
@@ -106,18 +112,6 @@ body {
 .brand {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-}
-
-.brand-icon {
-    width: 38px;
-    height: 38px;
-    border-radius: var(--radius-sm);
-    background: linear-gradient(135deg, var(--color-blue), var(--color-cyan));
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #fff;
 }
 
 .brand-text {
@@ -126,19 +120,10 @@ body {
 }
 
 .brand-name {
-    font-weight: 700;
-    font-size: 1.1rem;
+    font-weight: 800;
+    font-size: 1.25rem;
     letter-spacing: -0.02em;
-}
-
-.brand-version {
-    font-size: 0.65rem;
-    font-family: var(--font-mono);
-    color: var(--color-cyan);
-    background: rgba(0, 240, 255, 0.12);
-    padding: 0.1rem 0.4rem;
-    border-radius: 4px;
-    margin-left: 0.3rem;
+    color: var(--text-primary);
 }
 
 .brand-tagline {
@@ -160,7 +145,7 @@ body {
 }
 
 .nav-link:hover, .nav-link.active {
-    color: var(--text-primary);
+    color: var(--color-blue);
 }
 
 .btn-icon {
@@ -298,6 +283,10 @@ body {
     color: var(--color-green);
 }
 
+.telemetry-value.status-bad {
+    color: var(--color-red);
+}
+
 .telemetry-divider {
     width: 1px;
     height: 32px;
@@ -370,16 +359,20 @@ body {
     100% { opacity: 0.6; }
 }
 
-/* Airfoil Canvas Card (Robust explicit Sizing & High DPI rendering) */
+/* Airfoil Canvas Card */
 .canvas-card {
     position: relative;
     width: 100%;
-    height: 380px;
-    background: rgba(5, 8, 16, 0.8);
+    height: 400px;
+    background: rgba(5, 8, 16, 0.85);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
     overflow: hidden;
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+}
+
+[data-theme="light"] .canvas-card {
+    background: #090d16;
 }
 
 #airfoil-canvas {
@@ -398,27 +391,27 @@ body {
 .hud-top-left {
     top: 14px;
     left: 16px;
-    background: rgba(0, 0, 0, 0.55);
+    background: rgba(0, 0, 0, 0.65);
     backdrop-filter: blur(8px);
     padding: 0.5rem 0.85rem;
     border-radius: var(--radius-sm);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
     display: flex;
     flex-direction: column;
     gap: 0.2rem;
 }
 
 .hud-metric {
-    font-size: 0.73rem;
+    font-size: 0.75rem;
     font-family: var(--font-mono);
 }
 
 .hud-label {
-    color: var(--text-muted);
+    color: #94a3b8;
 }
 
 .hud-val {
-    color: var(--text-primary);
+    color: #f8fafc;
     font-weight: 600;
 }
 
@@ -431,11 +424,11 @@ body {
     display: flex;
     align-items: center;
     gap: 0.85rem;
-    background: rgba(0, 0, 0, 0.6);
+    background: rgba(0, 0, 0, 0.65);
     backdrop-filter: blur(8px);
     padding: 0.4rem 0.85rem;
     border-radius: var(--radius-sm);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
     font-size: 0.72rem;
 }
 
@@ -447,10 +440,10 @@ body {
 
 .lift-indicator { background-color: var(--color-cyan); }
 .drag-indicator { background-color: var(--color-red); }
-.flow-indicator { background-color: rgba(0, 200, 255, 0.6); }
+.flow-indicator { background-color: rgba(0, 200, 255, 0.8); }
 
 .legend-text {
-    color: var(--text-secondary);
+    color: #cbd5e1;
 }
 
 /* Simulation Control Panel Cards */
@@ -485,7 +478,7 @@ body {
 .btn-text {
     background: transparent;
     border: none;
-    color: var(--color-cyan);
+    color: var(--color-blue);
     font-size: 0.75rem;
     font-weight: 600;
     cursor: pointer;
@@ -495,6 +488,63 @@ body {
     text-decoration: underline;
 }
 
+/* Display Toggle Switches */
+.toggles-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+.toggle-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+    font-size: 0.83rem;
+    color: var(--text-secondary);
+    user-select: none;
+}
+
+.toggle-item input[type="checkbox"] {
+    display: none;
+}
+
+.toggle-slider {
+    width: 36px;
+    height: 20px;
+    background-color: var(--slider-track);
+    border-radius: 20px;
+    position: relative;
+    transition: background-color 0.2s ease;
+    border: 1px solid var(--slider-track-border);
+}
+
+.toggle-slider::before {
+    content: "";
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background-color: #ffffff;
+    top: 2px;
+    left: 2px;
+    transition: transform 0.2s ease;
+}
+
+.toggle-item input[type="checkbox"]:checked + .toggle-slider {
+    background-color: var(--color-blue);
+}
+
+.toggle-item input[type="checkbox"]:checked + .toggle-slider::before {
+    transform: translateX(16px);
+}
+
+.toggle-label {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+/* Control Groups & Light-Mode Compatible Range Sliders */
 .control-group {
     margin-bottom: 1rem;
 }
@@ -521,7 +571,7 @@ body {
     color: var(--text-primary);
 }
 
-/* Custom Range Input */
+/* Custom Range Input (Fully Visible in Both Light & Dark Theme) */
 input[type=range] {
     width: 100%;
     -webkit-appearance: none;
@@ -533,27 +583,54 @@ input[type=range]:focus {
     outline: none;
 }
 
+/* Slider Track - Webkit */
 input[type=range]::-webkit-slider-runnable-track {
     width: 100%;
-    height: 6px;
+    height: 8px;
     cursor: pointer;
-    background: rgba(255, 255, 255, 0.12);
-    border-radius: 3px;
+    background: var(--slider-track);
+    border: 1px solid var(--slider-track-border);
+    border-radius: 4px;
 }
 
+/* Slider Track - Firefox */
+input[type=range]::-moz-range-track {
+    width: 100%;
+    height: 8px;
+    cursor: pointer;
+    background: var(--slider-track);
+    border: 1px solid var(--slider-track-border);
+    border-radius: 4px;
+}
+
+/* Slider Thumb - Webkit */
 input[type=range]::-webkit-slider-thumb {
-    height: 16px;
-    width: 16px;
+    height: 18px;
+    width: 18px;
     border-radius: 50%;
     background: var(--color-blue);
+    border: 2px solid #ffffff;
     cursor: pointer;
     -webkit-appearance: none;
-    margin-top: -5px;
-    box-shadow: 0 0 10px rgba(0, 136, 255, 0.6);
+    margin-top: -6px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
     transition: transform 0.1s ease;
 }
 
-input[type=range]::-webkit-slider-thumb:hover {
+/* Slider Thumb - Firefox */
+input[type=range]::-moz-range-thumb {
+    height: 18px;
+    width: 18px;
+    border-radius: 50%;
+    background: var(--color-blue);
+    border: 2px solid #ffffff;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+    transition: transform 0.1s ease;
+}
+
+input[type=range]::-webkit-slider-thumb:hover,
+input[type=range]::-moz-range-thumb:hover {
     transform: scale(1.15);
 }
 
@@ -584,7 +661,7 @@ input[type=range]::-webkit-slider-thumb:hover {
 }
 
 .result-box {
-    background: rgba(0, 0, 0, 0.25);
+    background: rgba(0, 0, 0, 0.15);
     border: 1px solid var(--border-color);
     padding: 0.75rem;
     border-radius: var(--radius-sm);
@@ -709,10 +786,10 @@ input[type=range]::-webkit-slider-thumb:hover {
 
 .eq-formula-box {
     font-family: var(--font-mono);
-    font-size: 1.1rem;
+    font-size: 1.05rem;
     text-align: center;
     padding: 1rem;
-    background: rgba(0, 0, 0, 0.3);
+    background: rgba(0, 0, 0, 0.2);
     border-radius: var(--radius-sm);
     border: 1px solid var(--border-color);
     margin-bottom: 1.25rem;
@@ -825,13 +902,18 @@ input[type=range]::-webkit-slider-thumb:hover {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 0.85rem;
+    font-size: 0.88rem;
     color: var(--text-secondary);
 }
 
 .footer-brand {
-    font-weight: 600;
+    font-weight: 700;
     color: var(--text-primary);
+}
+
+.footer-author {
+    font-weight: 600;
+    color: var(--color-cyan);
 }
 
 /* Responsive Media Queries */
