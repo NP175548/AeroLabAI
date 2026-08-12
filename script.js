@@ -124,8 +124,10 @@ document.addEventListener("DOMContentLoaded", () => {
   function calcCl(alpha) {
     const alphaRad = (alpha * Math.PI) / 180;
     if (alpha <= state.criticalAoA) {
+      // Thin Airfoil Theory linear slope: Cl = 2 * pi * (alpha + alpha_0)
       return 2 * Math.PI * (alphaRad + 0.05);
     } else {
+      // Post-stall separation drop-off
       const stallRatio = (alpha - state.criticalAoA) / 10;
       const maxCl = 2 * Math.PI * ((state.criticalAoA * Math.PI / 180) + 0.05);
       return maxCl * Math.exp(-stallRatio * 1.1) + Math.sin(2 * alphaRad) * 0.12;
@@ -135,11 +137,14 @@ document.addEventListener("DOMContentLoaded", () => {
   // Calculate Drag Coefficient Cd(alpha)
   function calcCd(alpha) {
     const clVal = calcCl(alpha);
-    const cd0 = 0.02;
-    const aspect = 7.5;
-    const oswald = 0.85;
+    const cd0 = 0.02;       // Parasite drag coefficient
+    const aspect = 7.5;     // Wing Aspect Ratio (AR)
+    const oswald = 0.85;    // Oswald efficiency factor (e)
+    
+    // Induced Drag: Cdi = Cl^2 / (pi * e * AR)
     const cdi = (clVal * clVal) / (Math.PI * oswald * aspect);
     const stallDrag = alpha > state.criticalAoA ? 0.15 * Math.pow((alpha - state.criticalAoA) / 4, 1.8) : 0;
+    
     return cd0 + cdi + stallDrag;
   }
 
@@ -149,8 +154,10 @@ document.addEventListener("DOMContentLoaded", () => {
     state.cd = calcCd(state.aoa);
     state.isStalled = state.aoa > state.criticalAoA;
 
-    // Dynamic Pressure q = 0.5 * rho * v^2
+    // Dynamic Pressure q = 0.5 * rho * v^2 [Pa]
     const q = 0.5 * state.density * state.airspeed * state.airspeed;
+    
+    // Aerodynamic Forces [N]
     state.lift = q * state.area * state.cl;
     state.drag = q * state.area * state.cd;
     state.ldRatio = state.drag > 0 ? state.lift / state.drag : 0;
@@ -212,8 +219,10 @@ document.addEventListener("DOMContentLoaded", () => {
     // Hero Header Metrics
     const mach = (state.airspeed / 343).toFixed(2);
     const heroq = ((0.5 * state.density * state.airspeed * state.airspeed) / 1000).toFixed(1);
-    document.getElementById("hero-mach").textContent = mach;
-    document.getElementById("hero-q").textContent = `${heroq} kPa`;
+    const elemMach = document.getElementById("hero-mach");
+    const elemQ = document.getElementById("hero-q");
+    if (elemMach) elemMach.textContent = mach;
+    if (elemQ) elemQ.textContent = `${heroq} kPa`;
 
     renderCharts();
   }
@@ -244,7 +253,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (distSq < 25000) {
         const inf = Math.exp(-distSq / 16000);
         
-        // Downwash pushes air downwards (+Y direction) behind trailing edge (dx > 0)
+        // Downwash pushes air downwards (+Y in canvas) behind trailing edge (dx > 0)
         const downwash = (dx > 0) ? (state.aoa * 1.5 * (dx / 150)) : 0;
 
         if (state.isStalled && dx > 0) {
@@ -264,7 +273,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // Draw Airfoil Profile
-    // Negated AoA sign forces positive AoA to tilt nose UP (-Y) and tail DOWN (+Y)
+    // Negated sign rotates positive AoA nose UP (-Y) and tail DOWN (+Y)
     simCtx.save();
     simCtx.translate(cx, cy);
     simCtx.rotate(-(state.aoa * Math.PI) / 180);
@@ -422,7 +431,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const px = padL + ((x - minX) / (maxX - minX)) * (w - padL - padR);
       const py = (h - padB) - ((y - minY) / (maxY - minY)) * (h - padT - padB);
-
       const clampedPy = Math.max(padT, Math.min(h - padB, py));
 
       if (i === 0) ctx.moveTo(px, clampedPy);
@@ -430,31 +438,31 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     ctx.stroke();
 
-    // Exact Dot Y evaluated directly from curve function
+    // Dot Y evaluated directly from curve function
     const exactY = func(curX);
     const dotPx = padL + ((curX - minX) / (maxX - minX)) * (w - padL - padR);
     const rawPy = (h - padB) - ((exactY - minY) / (maxY - minY)) * (h - padT - padB);
     const dotPy = Math.max(padT, Math.min(h - padB, rawPy));
 
-    // Outer Halo Ring
+    // Outer Ring
     ctx.fillStyle = state.isStalled ? "rgba(255, 71, 87, 0.3)" : "rgba(46, 213, 115, 0.3)";
     ctx.beginPath();
     ctx.arc(dotPx, dotPy, 8, 0, Math.PI * 2);
     ctx.fill();
 
-    // Telemetry Marker Dot
+    // Inner Dot
     ctx.fillStyle = state.isStalled ? "#ff4757" : "#2ed573";
     ctx.beginPath();
     ctx.arc(dotPx, dotPy, 4.5, 0, Math.PI * 2);
     ctx.fill();
 
-    // Dot Meaning Legend Text
+    // Legend Header
     ctx.fillStyle = "rgba(240, 244, 248, 0.9)";
     ctx.font = "10px sans-serif";
     ctx.fillText(`● ${dotLegend}`, padL + 4, padT - 8);
   }
 
-  // Atmospheric Background Canvas
+  // Background Canvas Animation
   function renderBackground() {
     bgCtx.clearRect(0, 0, DOM.bgCanvas.width, DOM.bgCanvas.height);
     const bgOpacity = Math.min(0.25, 0.08 * (state.density / 1.225));
@@ -513,10 +521,12 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     });
 
-    DOM.themeToggle.addEventListener("click", () => {
-      const currentTheme = DOM.html.getAttribute("data-theme");
-      DOM.html.setAttribute("data-theme", currentTheme === "dark" ? "light" : "dark");
-    });
+    if (DOM.themeToggle) {
+      DOM.themeToggle.addEventListener("click", () => {
+        const currentTheme = DOM.html.getAttribute("data-theme");
+        DOM.html.setAttribute("data-theme", currentTheme === "dark" ? "light" : "dark");
+      });
+    }
   }
 
   // App Initialization
