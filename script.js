@@ -149,7 +149,7 @@ document.addEventListener("DOMContentLoaded", () => {
     state.cd = calcCd(state.aoa);
     state.isStalled = state.aoa > state.criticalAoA;
 
-    // Forces: Lift & Drag (N = q * S * C)
+    // Dynamic Pressure q = 0.5 * rho * v^2
     const q = 0.5 * state.density * state.airspeed * state.airspeed;
     state.lift = q * state.area * state.cl;
     state.drag = q * state.area * state.cd;
@@ -182,12 +182,11 @@ document.addEventListener("DOMContentLoaded", () => {
     DOM.reqLift.textContent = `${weightForceKN} kN`;
     DOM.genLift.textContent = `${liftKN} kN`;
 
-    // Equilibrium Flight Balance Calculation
+    // Flight Equilibrium Ratio
     const liftWeightRatio = state.lift / weightForceN;
     const balancePct = Math.min(100, Math.max(0, liftWeightRatio * 50));
     DOM.balanceIndicator.style.width = `${balancePct}%`;
 
-    // Pitch Angle & Lift Equilibrium State Logic
     if (state.isStalled) {
       DOM.stallAlert.classList.remove("hidden");
       DOM.valStatus.textContent = "STALL / FLOW SEPARATION";
@@ -210,7 +209,7 @@ document.addEventListener("DOMContentLoaded", () => {
       DOM.balanceIndicator.style.backgroundColor = "var(--green)";
     }
 
-    // Hero Header Telemetry
+    // Hero Header Metrics
     const mach = (state.airspeed / 343).toFixed(2);
     const heroq = ((0.5 * state.density * state.airspeed * state.airspeed) / 1000).toFixed(1);
     document.getElementById("hero-mach").textContent = mach;
@@ -219,7 +218,7 @@ document.addEventListener("DOMContentLoaded", () => {
     renderCharts();
   }
 
-  // Draw Main Wind Tunnel Viewport
+  // Draw Wind Tunnel Viewport
   function renderSimulation() {
     const w = DOM.simCanvas.width;
     const h = DOM.simCanvas.height;
@@ -232,7 +231,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const areaScale = Math.sqrt(state.area / 125);
     const densityOpacity = Math.min(1.0, Math.max(0.3, state.density / 1.225));
 
-    // Render Streamlines & Airflow Downwash
+    // Streamlines & Downwash
     flowParticles.forEach(p => {
       p.x += p.speed * speedRatio * 2.2;
       if (p.x > w) p.x = 0;
@@ -244,13 +243,15 @@ document.addEventListener("DOMContentLoaded", () => {
       let renderY = p.y;
       if (distSq < 25000) {
         const inf = Math.exp(-distSq / 16000);
-        // Positive AoA causes downstream downwash deflection (+Y direction in canvas)
-        const downwash = (dx > 0) ? (state.aoa * 1.6 * (dx / 180)) : 0;
+        
+        // Downwash pushes air downwards (+Y direction) behind trailing edge (dx > 0)
+        const downwash = (dx > 0) ? (state.aoa * 1.5 * (dx / 150)) : 0;
 
         if (state.isStalled && dx > 0) {
           renderY += Math.sin(p.x * 0.12 + Date.now() * 0.012) * 16 * inf + downwash;
         } else {
-          renderY -= (inf * 20 * Math.sin((state.aoa * Math.PI) / 180)) - downwash;
+          const liftDeflection = inf * 18 * Math.sin((state.aoa * Math.PI) / 180);
+          renderY = p.y - liftDeflection + downwash;
         }
       }
 
@@ -263,11 +264,10 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // Draw Airfoil Profile
-    // Note: Leading edge (nose) is at x = -chord/2 (left side).
-    // Rotating clockwise (positive angle) tilts nose UP (-Y) and tail DOWN (+Y).
+    // Negated AoA sign forces positive AoA to tilt nose UP (-Y) and tail DOWN (+Y)
     simCtx.save();
     simCtx.translate(cx, cy);
-    simCtx.rotate((state.aoa * Math.PI) / 180);
+    simCtx.rotate(-(state.aoa * Math.PI) / 180);
 
     const chord = 180 * areaScale;
     simCtx.beginPath();
@@ -297,21 +297,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
     simCtx.restore();
 
-    // Render Vector Force Arrows
+    // Render Vectors
     if (state.mode === "all" || state.mode === "vectors") {
-      // Lift Vector (Points UP -> -Y in canvas coordinates)
+      // Lift Vector (Points UP -> -Y)
       const liftPx = Math.min(150, (state.lift / 1200000) * 110);
       if (Math.abs(liftPx) > 2) {
         drawVector(cx, cy, cx, cy - liftPx, "#00d2ff", `Lift (${(state.lift / 1000).toFixed(0)} kN)`);
       }
 
-      // Drag Vector (Points Right -> +X in canvas coordinates)
+      // Drag Vector (Points Right -> +X)
       const dragPx = Math.min(130, (state.drag / 300000) * 90);
       if (dragPx > 2) {
         drawVector(cx, cy, cx + dragPx, cy, "#ff4757", `Drag (${(state.drag / 1000).toFixed(0)} kN)`);
       }
 
-      // Weight Vector (Points DOWN -> +Y in canvas coordinates)
+      // Weight Vector (Points DOWN -> +Y)
       const weightN = state.weight * 9.81;
       const weightPx = Math.min(150, (weightN / 1200000) * 110);
       if (weightPx > 2) {
@@ -346,7 +346,7 @@ document.addEventListener("DOMContentLoaded", () => {
     simCtx.fillText(label, tx + 8, ty + 4);
   }
 
-  // Render Telemetry Plots with Exact Curve-Aligned Dots and Data Annotations
+  // Render Telemetry Plots
   function renderCharts() {
     // 1. Lift Coefficient (Cl) vs Angle (alpha)
     drawPlot(
@@ -390,7 +390,7 @@ document.addEventListener("DOMContentLoaded", () => {
     );
   }
 
-  // Draw Plot Chart Function
+  // Draw Plot Chart
   function drawPlot(ctx, canvas, func, minX, maxX, minY, maxY, curX, labelX, labelY, unitX, unitY, dotLegend) {
     const w = canvas.width;
     const h = canvas.height;
@@ -410,7 +410,7 @@ document.addEventListener("DOMContentLoaded", () => {
     ctx.lineTo(w - padR, h - padB);
     ctx.stroke();
 
-    // Plot Function Curve Line
+    // Plot Curve Line
     ctx.strokeStyle = "#00d2ff";
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -430,7 +430,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     ctx.stroke();
 
-    // Compute Exact Dot Y directly from func(curX) to guarantee alignment on curve line
+    // Exact Dot Y evaluated directly from curve function
     const exactY = func(curX);
     const dotPx = padL + ((curX - minX) / (maxX - minX)) * (w - padL - padR);
     const rawPy = (h - padB) - ((exactY - minY) / (maxY - minY)) * (h - padT - padB);
@@ -442,13 +442,13 @@ document.addEventListener("DOMContentLoaded", () => {
     ctx.arc(dotPx, dotPy, 8, 0, Math.PI * 2);
     ctx.fill();
 
-    // Solid Telemetry Marker Dot
+    // Telemetry Marker Dot
     ctx.fillStyle = state.isStalled ? "#ff4757" : "#2ed573";
     ctx.beginPath();
     ctx.arc(dotPx, dotPy, 4.5, 0, Math.PI * 2);
     ctx.fill();
 
-    // Text Legend Explaining What the Dot Represents
+    // Dot Meaning Legend Text
     ctx.fillStyle = "rgba(240, 244, 248, 0.9)";
     ctx.font = "10px sans-serif";
     ctx.fillText(`● ${dotLegend}`, padL + 4, padT - 8);
