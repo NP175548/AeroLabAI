@@ -5,68 +5,93 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Flight Physics Simulation - AI Version</title>
   <link rel="stylesheet" href="styles.css">
-  <!-- MathJax for rendering aerodynamic formulas -->
   <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
 </head>
 <body>
 
 <div class="container">
-  <div class="header">
+  <header class="header">
     <div class="title-group">
       <span class="badge">AI Version</span>
       <h1>Wind Tunnel Aerodynamics</h1>
     </div>
     <button id="themeToggleBtn" class="theme-toggle">🌙 Dark Mode</button>
-  </div>
+  </header>
 
-  <div class="telemetry-bar">
+  <section class="telemetry-bar">
     <div id="status-tag" class="stat">Status: Level Flight</div>
     <div id="aoa-tag" class="stat">AoA: 0.0°</div>
-    <div id="speed-tag" class="stat">Speed: 0.0 kts</div>
+    <div id="speed-tag" class="stat">Speed: 0 kts</div>
+    <div id="thrust-tag" class="stat">Thrust: 60%</div>
     <div id="weight-tag" class="stat">Weight: 12,000 kg</div>
-  </div>
+  </section>
 
-  <div class="canvas-wrapper">
-    <canvas id="simCanvas" width="800" height="400"></canvas>
-  </div>
+  <main class="canvas-wrapper">
+    <canvas id="simCanvas" width="800" height="380"></canvas>
+  </main>
 
-  <div class="controls-panel">
+  <section class="controls-panel">
+    <!-- Pitch Control Slider -->
     <div class="control-group">
-      <label>Flight Controls</label>
-      <div class="button-row">
-        <button id="pitchUpBtn">Pitch Up (+2°)</button>
-        <button id="pitchDownBtn">Pitch Down (-2°)</button>
-        <button id="resetBtn" class="secondary">Reset Flight</button>
+      <div class="slider-header">
+        <label for="pitchSlider">Pitch Angle (Elevator)</label>
+        <span id="pitchValueDisplay" class="value-badge">0.0°</span>
       </div>
+      <input type="range" id="pitchSlider" min="-15" max="25" step="0.5" value="0">
     </div>
 
+    <!-- Throttle Control Slider -->
     <div class="control-group">
-      <label for="weightSlider">Aircraft Mass / Weight: <span id="weightValueDisplay">12,000 kg</span></label>
-      <input type="range" id="weightSlider" min="5000" max="25000" step="500" value="12000">
+      <div class="slider-header">
+        <label for="throttleSlider">Engine Thrust (Throttle)</label>
+        <span id="throttleValueDisplay" class="value-badge">60%</span>
+      </div>
+      <input type="range" id="throttleSlider" min="0" max="100" step="1" value="60">
     </div>
-  </div>
 
-  <!-- Physics Equations & Variable Legend -->
-  <div class="info-section">
+    <!-- Flaps Deflection Slider -->
+    <div class="control-group">
+      <div class="slider-header">
+        <label for="flapsSlider">Flap Deflection</label>
+        <span id="flapsValueDisplay" class="value-badge">0°</span>
+      </div>
+      <input type="range" id="flapsSlider" min="0" max="30" step="1" value="0">
+    </div>
+
+    <!-- Weight / Mass Slider -->
+    <div class="control-group">
+      <div class="slider-header">
+        <label for="weightSlider">Aircraft Mass / Weight</label>
+        <span id="weightValueDisplay" class="value-badge">12,000 kg</span>
+      </div>
+      <input type="range" id="weightSlider" min="5000" max="30000" step="500" value="12000">
+    </div>
+
+    <div class="reset-row">
+      <button id="resetBtn" class="secondary">Reset All Sliders & Simulation</button>
+    </div>
+  </section>
+
+  <section class="info-section">
     <h2>Core Aerodynamic Physics</h2>
-    <p>The simulation uses full 2D force summation accounting for aircraft weight, lift, drag, and true angle of attack relative to the flight path vector.</p>
+    <p>The simulation calculates real-time 2D forces by summing lift, drag, thrust, and gravitational weight vectors relative to the flight path angle.</p>
 
     <div class="formula-grid">
       <div class="formula-card">
         <h3>Lift Equation</h3>
-        <p>$$L = \frac{1}{2} C_L \cdot \rho \cdot v^2 \cdot S$$</p>
+        <p>$$L = \frac{1}{2} (C_{L} + C_{L,\text{flaps}}) \rho v^2 S$$</p>
       </div>
       <div class="formula-card">
         <h3>Drag Equation</h3>
-        <p>$$D = \frac{1}{2} C_D \cdot \rho \cdot v^2 \cdot S$$</p>
+        <p>$$D = \frac{1}{2} (C_{D} + C_{D,\text{flaps}}) \rho v^2 S$$</p>
       </div>
       <div class="formula-card">
-        <h3>Weight & Gravity Force</h3>
+        <h3>Aircraft Weight</h3>
         <p>$$W = m \cdot g$$</p>
       </div>
       <div class="formula-card">
-        <h3>Net Vertical Acceleration</h3>
-        <p>$$a_y = \frac{L \cdot \cos(\gamma) - D \cdot \sin(\gamma) - W}{m}$$</p>
+        <h3>Net Thrust Force</h3>
+        <p>$$T = T_{\text{max}} \cdot \text{Throttle}\%$$</p>
       </div>
     </div>
 
@@ -74,45 +99,50 @@
     <table class="legend-table">
       <thead>
         <tr>
-          <th>Symbol / Line</th>
+          <th>Symbol / Indicator</th>
           <th>Definition</th>
-          <th>Physical Function</th>
+          <th>Aerodynamic Effect</th>
         </tr>
       </thead>
       <tbody>
         <tr>
           <td><strong>$L$ (Lift)</strong></td>
           <td>Lift Force</td>
-          <td>Acts perpendicular to the relative airflow vector to push aircraft upward.</td>
+          <td>Acts perpendicular to airflow vector. Increased by pitch angle and flap deployment.</td>
         </tr>
         <tr>
           <td><strong>$D$ (Drag)</strong></td>
           <td>Aerodynamic Drag</td>
-          <td>Acts parallel and opposite to velocity vector, resisting movement.</td>
+          <td>Resists forward movement along velocity vector. Increases with AoA, speed, and flaps.</td>
+        </tr>
+        <tr>
+          <td><strong>$T$ (Thrust)</strong></td>
+          <td>Forward Thrust</td>
+          <td>Engine force controlled directly via the throttle slider to overcome drag and sustain airspeed.</td>
         </tr>
         <tr>
           <td><strong>$W$ / $m$ (Weight/Mass)</strong></td>
-          <td>Aircraft Weight</td>
-          <td>Heavier aircraft require higher speed ($v$) or pitch angle to maintain altitude.</td>
+          <td>Mass Force ($m \cdot g$)</td>
+          <td>Higher weight demands more thrust and higher lift coefficients to prevent sinking.</td>
         </tr>
         <tr>
           <td><strong>$\alpha$ (AoA)</strong></td>
-          <td>Angle of Attack</td>
-          <td>Difference between Pitch Angle ($\theta$) and Flight Path Angle ($\gamma$). Exceeding 15° causes stall.</td>
+          <td>Angle of Attack ($\theta - \gamma$)</td>
+          <td>Difference between pitch angle ($\theta$) and flight path ($\gamma$). Exceeding 15° triggers aerodynamic stall.</td>
         </tr>
         <tr>
           <td><span class="color-dot blue"></span> <strong>Blue Line</strong></td>
-          <td>Chord Reference Line</td>
-          <td>Indicates physical pitch orientation of the wing relative to horizontal plane.</td>
+          <td>Wing Chord Reference</td>
+          <td>Indicates physical pitch orientation set by the pitch angle slider.</td>
         </tr>
         <tr>
-          <td><span class="color-dot cyan"></span> <strong>Cyan Arrows</strong></td>
-          <td>Relative Airflow</td>
-          <td>Visual stream lines showing air direction relative to current flight vector.</td>
+          <td><span class="color-dot cyan"></span> <strong>Cyan Streams</strong></td>
+          <td>Relative Airflow Particles</td>
+          <td>Dynamic stream lines matching visual air speed and direction in the tunnel.</td>
         </tr>
       </tbody>
     </table>
-  </div>
+  </section>
 </div>
 
 <script src="script.js"></script>
