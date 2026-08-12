@@ -33,7 +33,7 @@ const aircraftPresets = {
     cargo:     { speed: 100, aoa: 6.0, area: 310, weight: 155000,density: 1.225, cl0: 0.40, cla: 0.09, aoaStall: 14.5, cd0: 0.028 }
 };
 
-// Particle Simulation for Airflow Canvas
+// Particle Simulation for Airflow Canvas (Direct Surface Boundary Interaction)
 class AirflowParticle {
     constructor(width, height) {
         this.reset(width, height, true);
@@ -44,32 +44,56 @@ class AirflowParticle {
         this.y = Math.random() * height;
         this.vx = state.speed * 0.08 + 2;
         this.size = Math.random() * 2 + 1;
-        this.alpha = Math.random() * 0.6 + 0.2;
+        this.alpha = Math.random() * 0.6 + 0.3;
     }
 
-    update(width, height, foilX, foilY, aoa, isStalled) {
-        this.vx = state.speed * 0.06 + 2;
+    update(width, height, foilX, foilY, chord, aoa, isStalled) {
+        this.vx = state.speed * 0.07 + 2;
         const rad = (aoa * Math.PI) / 180;
         
-        // Deflection distance around wing
+        // Transform particle coordinates into local airfoil coordinate frame
         const dx = this.x - foilX;
         const dy = this.y - foilY;
-        const dist = Math.sqrt(dx * dx + dy * dy);
 
-        if (dist < 180) {
-            const influence = (1 - dist / 180);
+        // Un-rotate relative position to check alignment against physical airfoil bounds
+        const localX = dx * Math.cos(-rad) - dy * Math.sin(-rad);
+        const localY = dx * Math.sin(-rad) + dy * Math.cos(-rad);
+
+        const halfChord = chord * 0.5;
+        const thickness = chord * 0.12;
+
+        // Check if particle is approaching or contacting wing boundary surface
+        if (localX > -halfChord && localX < halfChord) {
+            const normX = (localX + halfChord) / chord;
             
-            if (this.y < foilY) {
-                // Upper wing stream acceleration
-                this.y -= (25 * influence * (1 + Math.sin(rad)));
-                if (isStalled && this.x > foilX) {
-                    // Turbulent stall eddies
-                    this.y += (Math.random() - 0.5) * 12 * influence;
-                    this.x += (Math.random() - 0.5) * 6;
+            // Upper and Lower Surface Profile Contour
+            const yt = 5 * thickness * (0.2969 * Math.sqrt(Math.max(0, normX)) - 0.1260 * normX - 0.3516 * Math.pow(normX, 2) + 0.2843 * Math.pow(normX, 3) - 0.1015 * Math.pow(normX, 4));
+            const yc = 0.04 * chord * (normX - Math.pow(normX, 2));
+
+            const upperBoundary = -yt - yc;
+            const lowerBoundary = yt - yc;
+
+            // Direct Interaction / Deflection Logic
+            if (localY < upperBoundary && localY > upperBoundary - 25) {
+                // Upper boundary suction flow (accelerated around upper curve)
+                const pushUp = (upperBoundary - 4) - localY;
+                const rotY = pushUp * Math.cos(rad);
+                const rotX = pushUp * Math.sin(rad);
+                this.y += rotY * 0.3;
+                this.x += rotX * 0.3;
+
+                if (isStalled && localX > 0) {
+                    // Boundary layer turbulence separation
+                    this.y += (Math.random() - 0.5) * 8;
+                    this.x += (Math.random() - 0.5) * 4;
                 }
-            } else {
-                // Lower wing flow redirection
-                this.y += (15 * influence * Math.cos(rad));
+            } else if (localY > lowerBoundary && localY < lowerBoundary + 25) {
+                // Lower surface pressure interaction (pushed along bottom profile)
+                const pushDown = (lowerBoundary + 4) - localY;
+                const rotY = pushDown * Math.cos(rad);
+                const rotX = pushDown * Math.sin(rad);
+                this.y += rotY * 0.3;
+                this.x += rotX * 0.3;
             }
         }
 
@@ -90,7 +114,6 @@ class AirflowParticle {
 
 // Global Particle Collections
 let simParticles = [];
-let heroParticles = [];
 
 // DOM References
 let sliders = {};
@@ -208,7 +231,6 @@ function updatePhysics() {
         state.cl = state.cl0 + state.cla * alpha;
         state.isStalled = false;
     } else {
-        // Post-stall lift decay
         const peakCl = state.cl0 + state.cla * state.aoaStall;
         const stallPenalty = (alpha - state.aoaStall) * 0.08;
         state.cl = Math.max(0.2, peakCl - stallPenalty);
@@ -216,10 +238,10 @@ function updatePhysics() {
     }
 
     // Induced Drag: C_Di = (C_L^2) / (pi * AR * e)
-    const e = 0.82; // Oswald efficiency factor
+    const e = 0.82;
     const cdi = (state.cl * state.cl) / (Math.PI * state.aspectRatio * e);
     
-    // Total Drag Coefficient (Parasitic + Induced + Stall separation penalty)
+    // Total Drag Coefficient
     let stallDragBonus = 0;
     if (state.isStalled) {
         stallDragBonus = Math.pow((alpha - state.aoaStall), 1.8) * 0.01;
@@ -288,9 +310,9 @@ function updateUI(cdi, q) {
     displays.gaugeLd.style.width = `${Math.min(100, (state.ldRatio / 25) * 100)}%`;
 
     // Hero Section Stats Sync
-    displays.heroLift.textContent = `${liftKN.toFixed(1)} kN`;
-    displays.heroLd.textContent = state.ldRatio.toFixed(1);
-    displays.heroStatus.textContent = state.isStalled ? "Stall" : "Attached";
+    if (displays.heroLift) displays.heroLift.textContent = `${liftKN.toFixed(1)} kN`;
+    if (displays.heroLd) displays.heroLd.textContent = state.ldRatio.toFixed(1);
+    if (displays.heroStatus) displays.heroStatus.textContent = state.isStalled ? "Stall" : "Attached";
 
     // Equations Display Sync
     displays.eqRho.textContent = `${state.density.toFixed(3)} kg/m³`;
@@ -309,19 +331,16 @@ function updateUI(cdi, q) {
 // Initializing Canvases and Particles
 function initCanvases() {
     const particleCanvas = document.getElementById('particle-canvas');
-    const heroCanvas = document.getElementById('hero-wing-canvas');
     const simCanvas = document.getElementById('sim-wing-canvas');
 
     resizeCanvasToDisplaySize(particleCanvas);
-    resizeCanvasToDisplaySize(heroCanvas);
     resizeCanvasToDisplaySize(simCanvas);
 
-    // Initialize Particle Arrays
-    simParticles = Array.from({ length: 120 }, () => new AirflowParticle(simCanvas.width, simCanvas.height));
-    heroParticles = Array.from({ length: 80 }, () => new AirflowParticle(heroCanvas.width, heroCanvas.height));
+    simParticles = Array.from({ length: 140 }, () => new AirflowParticle(simCanvas.width, simCanvas.height));
 }
 
 function resizeCanvasToDisplaySize(canvas) {
+    if (!canvas) return;
     const width = canvas.clientWidth;
     const height = canvas.clientHeight;
     if (canvas.width !== width || canvas.height !== height) {
@@ -333,8 +352,7 @@ function resizeCanvasToDisplaySize(canvas) {
 // Animation Loop
 function renderLoop() {
     renderParticleBg();
-    renderWingCanvas('sim-wing-canvas', simParticles, true);
-    renderWingCanvas('hero-wing-canvas', heroParticles, false);
+    renderWingCanvas('sim-wing-canvas', simParticles);
 
     renderGraphClAoa();
     renderGraphDragSpeed();
@@ -352,7 +370,7 @@ function renderParticleBg() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     ctx.fillStyle = "rgba(0, 136, 255, 0.15)";
-    for (let i = 0; i < 40; i++) {
+    for (let i = 0; i < 35; i++) {
         const x = (Math.sin(Date.now() * 0.0005 + i) * 0.5 + 0.5) * canvas.width;
         const y = (Math.cos(Date.now() * 0.0003 + i * 2) * 0.5 + 0.5) * canvas.height;
         ctx.beginPath();
@@ -362,7 +380,7 @@ function renderParticleBg() {
 }
 
 // Render Airfoil Canvas Simulation
-function renderWingCanvas(canvasId, particles, showVectors) {
+function renderWingCanvas(canvasId, particles) {
     const canvas = document.getElementById(canvasId);
     if (!canvas) return;
     resizeCanvasToDisplaySize(canvas);
@@ -377,43 +395,42 @@ function renderWingCanvas(canvasId, particles, showVectors) {
     const foilY = h * 0.5;
     const chord = Math.min(w, h) * 0.45;
 
-    // Draw Particles Streamlines
+    // Draw Particles Streamlines with precise wing boundary interaction
     particles.forEach(p => {
-        p.update(w, h, foilX, foilY, state.aoa, state.isStalled);
+        p.update(w, h, foilX, foilY, chord, state.aoa, state.isStalled);
         p.draw(ctx);
     });
 
-    // Draw Pressure Gradient Glow
+    // Pitch Angle Correction: Positive AoA pitches nose UP (+ angle in canvas coordinate space)
     ctx.save();
     ctx.translate(foilX, foilY);
     ctx.rotate((-state.aoa * Math.PI) / 180);
 
-    // Low Pressure (Top)
-    const topGlow = ctx.createRadialGradient(0, -30, 5, 0, -30, chord * 0.6);
-    topGlow.addColorStop(0, state.isStalled ? 'rgba(239, 68, 68, 0.25)' : 'rgba(0, 136, 255, 0.3)');
+    // Low Pressure Glow (Top curve)
+    const topGlow = ctx.createRadialGradient(0, -20, 5, 0, -20, chord * 0.5);
+    topGlow.addColorStop(0, state.isStalled ? 'rgba(239, 68, 68, 0.3)' : 'rgba(0, 136, 255, 0.35)');
     topGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
     ctx.fillStyle = topGlow;
     ctx.fillRect(-chord, -chord, chord * 2, chord);
 
-    // High Pressure (Bottom)
-    const botGlow = ctx.createRadialGradient(0, 30, 5, 0, 30, chord * 0.6);
-    botGlow.addColorStop(0, 'rgba(239, 68, 68, 0.25)');
+    // High Pressure Glow (Bottom curve)
+    const botGlow = ctx.createRadialGradient(0, 20, 5, 0, 20, chord * 0.5);
+    botGlow.addColorStop(0, 'rgba(239, 68, 68, 0.3)');
     botGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
     ctx.fillStyle = botGlow;
     ctx.fillRect(-chord, 0, chord * 2, chord);
 
-    // Draw NACA Style Airfoil Geometry
+    // Draw Airfoil Shape (NACA Profile facing left)
     ctx.beginPath();
     ctx.fillStyle = '#1e293b';
     ctx.strokeStyle = '#00f0ff';
-    ctx.lineWidth = 2.5;
+    ctx.lineWidth = 2.2;
 
     for (let i = 0; i <= 100; i++) {
         const xNorm = i / 100;
-        const x = (xNorm - 0.3) * chord;
-        // Symmetric/Cambered airfoil shape approximation
+        const x = (xNorm - 0.5) * chord;
         const yt = 5 * 0.12 * chord * (0.2969 * Math.sqrt(xNorm) - 0.1260 * xNorm - 0.3516 * Math.pow(xNorm, 2) + 0.2843 * Math.pow(xNorm, 3) - 0.1015 * Math.pow(xNorm, 4));
-        const yc = 0.04 * chord * (xNorm - Math.pow(xNorm, 2)); // Camber
+        const yc = 0.04 * chord * (xNorm - Math.pow(xNorm, 2));
         const yUpper = -yt - yc;
 
         if (i === 0) ctx.moveTo(x, yUpper);
@@ -422,7 +439,7 @@ function renderWingCanvas(canvasId, particles, showVectors) {
 
     for (let i = 100; i >= 0; i--) {
         const xNorm = i / 100;
-        const x = (xNorm - 0.3) * chord;
+        const x = (xNorm - 0.5) * chord;
         const yt = 5 * 0.12 * chord * (0.2969 * Math.sqrt(xNorm) - 0.1260 * xNorm - 0.3516 * Math.pow(xNorm, 2) + 0.2843 * Math.pow(xNorm, 3) - 0.1015 * Math.pow(xNorm, 4));
         const yc = 0.04 * chord * (xNorm - Math.pow(xNorm, 2));
         const yLower = yt - yc;
@@ -434,27 +451,25 @@ function renderWingCanvas(canvasId, particles, showVectors) {
     ctx.stroke();
     ctx.restore();
 
-    // Render Force Vectors (Lift & Drag)
-    if (showVectors) {
-        const liftLen = Math.min(140, (state.lift / 1000) * 0.08);
-        const dragLen = Math.min(100, (state.drag / 1000) * 0.4);
+    // Render Aerodynamic Force Vectors (Corrected Orientations)
+    const liftLen = Math.min(110, (state.lift / 1000) * 0.07);
+    const dragLen = Math.min(80, (state.drag / 1000) * 0.35);
 
-        // Lift Vector (Perpendicular upward)
-        drawVectorArrow(ctx, foilX, foilY, foilX, foilY - liftLen, '#00f0ff', 'Lift');
-        // Drag Vector (Parallel downstream)
-        drawVectorArrow(ctx, foilX, foilY, foilX + dragLen, foilY, '#ef4444', 'Drag');
-    }
+    // Lift Vector (Points UP when Lift > 0)
+    drawVectorArrow(ctx, foilX, foilY, foilX, foilY - liftLen, '#00f0ff', 'Lift');
+    // Drag Vector (Points Downstream / Right)
+    drawVectorArrow(ctx, foilX, foilY, foilX + dragLen, foilY, '#ef4444', 'Drag');
 }
 
 // Draw Vector Arrows with Labels
 function drawVectorArrow(ctx, fromX, fromY, toX, toY, color, label) {
-    const headLen = 10;
+    const headLen = 9;
     const angle = Math.atan2(toY - fromY, toX - fromX);
 
     ctx.save();
     ctx.strokeStyle = color;
     ctx.fillStyle = color;
-    ctx.lineWidth = 3;
+    ctx.lineWidth = 2.5;
 
     ctx.beginPath();
     ctx.moveTo(fromX, fromY);
@@ -469,7 +484,7 @@ function drawVectorArrow(ctx, fromX, fromY, toX, toY, color, label) {
     ctx.fill();
 
     ctx.font = '11px JetBrains Mono';
-    ctx.fillText(label, toX + 8, toY + 4);
+    ctx.fillText(label, toX + 6, toY + 4);
     ctx.restore();
 }
 
@@ -506,7 +521,6 @@ function renderGraphClAoa() {
     }
     ctx.stroke();
 
-    // Plot Current Operating Point
     const currentX = mapRange(state.aoa, -5, 25, 30, w - 15);
     const currentY = mapRange(state.cl, 0, 2.0, h - 20, 15);
     drawPlotPoint(ctx, currentX, currentY, state.isStalled ? '#ef4444' : '#00f0ff');
@@ -597,7 +611,6 @@ function drawGraphAxes(ctx, w, h, xMin, xMax, yMin, yMax) {
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
     ctx.lineWidth = 1;
 
-    // Grid lines
     ctx.beginPath();
     ctx.moveTo(30, 15); ctx.lineTo(30, h - 20); ctx.lineTo(w - 15, h - 20);
     ctx.stroke();
@@ -614,7 +627,7 @@ function drawGraphAxes(ctx, w, h, xMin, xMax, yMin, yMax) {
 function drawPlotPoint(ctx, x, y, color) {
     ctx.fillStyle = color;
     ctx.beginPath();
-    ctx.arc(x, y, 5, 0, Math.PI * 2);
+    ctx.arc(x, y, 4.5, 0, Math.PI * 2);
     ctx.fill();
     ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = 1.5;

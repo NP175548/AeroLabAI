@@ -24,6 +24,7 @@
             <nav class="nav-links">
                 <a href="#hero" class="nav-link active">Home</a>
                 <a href="#simulator" class="nav-link">Simulator</a>
+                <a href="#variables" class="nav-link">Variables</a>
                 <a href="#equations" class="nav-link">Physics</a>
                 <a href="#aircraft" class="nav-link">Aircraft</a>
                 <a href="#education" class="nav-link">Education</a>
@@ -38,36 +39,31 @@
     </header>
 
     <main>
-        <!-- Hero Section -->
+        <!-- Hero Section (Simulation removed from top) -->
         <section id="hero" class="hero-section">
             <div class="hero-content">
                 <div class="hero-tag">Aerodynamic Simulation Platform</div>
                 <h1 class="hero-title">Experience the Science of Flight.</h1>
                 <p class="hero-subtitle">
-                    Explore real-time fluid dynamics, airflow separation, and lift physics through interactive web-based aerospace visualization.
+                    Explore real-time fluid dynamics, boundary layer deflection, and wing physics through compact web-based aerodynamic visualization.
                 </p>
                 <div class="hero-actions">
                     <a href="#simulator" class="btn btn-primary">Launch Simulator</a>
-                    <a href="#education" class="btn btn-secondary">Explore Physics</a>
-                </div>
-                <div class="hero-stats">
-                    <div class="stat-card">
-                        <span class="stat-value" id="hero-stat-lift">0.0 kN</span>
-                        <span class="stat-label">Dynamic Lift</span>
-                    </div>
-                    <div class="stat-card">
-                        <span class="stat-value" id="hero-stat-ld">15.2</span>
-                        <span class="stat-label">L/D Efficiency</span>
-                    </div>
-                    <div class="stat-card">
-                        <span class="stat-value" id="hero-stat-status">Optimal</span>
-                        <span class="stat-label">Airflow Condition</span>
-                    </div>
+                    <a href="#variables" class="btn btn-secondary">Explore Variables</a>
                 </div>
             </div>
-            <div class="hero-visual">
-                <div class="hero-canvas-container">
-                    <canvas id="hero-wing-canvas"></canvas>
+            <div class="hero-stats-banner">
+                <div class="stat-card">
+                    <span class="stat-value" id="hero-stat-lift">0.0 kN</span>
+                    <span class="stat-label">Dynamic Lift</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-value" id="hero-stat-ld">15.2</span>
+                    <span class="stat-label">L/D Efficiency</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-value" id="hero-stat-status">Optimal</span>
+                    <span class="stat-label">Airflow Condition</span>
                 </div>
             </div>
         </section>
@@ -118,18 +114,18 @@
             </div>
         </section>
 
-        <!-- Aerodynamic Simulator Section -->
+        <!-- Aerodynamic Simulator Section (Compact Sizing) -->
         <section id="simulator" class="section-container">
             <div class="section-header">
                 <h2>Aerodynamic Wing Simulator</h2>
-                <p>Adjust environmental parameters and angle of attack to observe real-time airflow velocity vectors, force magnitude, and stall characteristics.</p>
+                <p>Adjust parameters to observe real-time airflow particles reacting directly with the wing surface and pitching behavior.</p>
             </div>
 
             <div class="simulator-layout">
                 <!-- Visualizer Column -->
                 <div class="sim-visualizer-card">
                     <div class="sim-canvas-header">
-                        <span class="sim-title">Airfoil Streamline Visualization</span>
+                        <span class="sim-title">Airfoil Particle Interaction Visualization</span>
                         <div class="status-indicator" id="stall-indicator">
                             <span class="status-dot"></span>
                             <span id="stall-status-text">Normal Airflow</span>
@@ -148,7 +144,6 @@
 
                 <!-- Controls & Metrics Dashboard -->
                 <div class="sim-dashboard">
-                    <!-- Dynamic Metrics Gauges -->
                     <div class="metrics-grid">
                         <div class="metric-card">
                             <span class="metric-title">Generated Lift</span>
@@ -229,11 +224,74 @@
             </div>
         </section>
 
+        <!-- Variable Definitions Section -->
+        <section id="variables" class="section-container">
+            <div class="section-header">
+                <h2>Aerodynamic Variable Definitions</h2>
+                <p>A clean overview of core variables governing fluid dynamics and lift generation.</p>
+            </div>
+            <div class="variables-grid">
+                <div class="var-def-card">
+                    <div class="var-symbol">&alpha;</div>
+                    <div class="var-info">
+                        <h3>Angle of Attack (AoA)</h3>
+                        <p>The angle between the chord line of the airfoil and the oncoming relative wind. Higher angles increase lift until reaching critical stall angle.</p>
+                        <span class="var-unit">Unit: Degrees (&deg;)</span>
+                    </div>
+                </div>
+
+                <div class="var-def-card">
+                    <div class="var-symbol">&rho;</div>
+                    <div class="var-info">
+                        <h3>Air Density (Rho)</h3>
+                        <p>Mass per unit volume of atmosphere. Air density decreases with altitude, directly reducing generated lift and drag.</p>
+                        <span class="var-unit">Unit: kg/m&sup3;</span>
+                    </div>
+                </div>
+
+                <div class="var-def-card">
+                    <div class="var-symbol">v</div>
+                    <div class="var-info">
+                        <h3>Airspeed / Velocity</h3>
+                        <p>The velocity of the aircraft relative to the surrounding air fluid stream. Dynamic pressure increases quadratically with speed.</p>
+                        <span class="var-unit">Unit: m/s or Knots</span>
+                    </div>
+                </div>
+
+                <div class="var-def-card">
+                    <div class="var-symbol">S</div>
+                    <div class="var-info">
+                        <h3>Wing Surface Area</h3>
+                        <p>Total planform projection area of the wing surface. Larger wing areas generate higher total aerodynamic forces.</p>
+                        <span class="var-unit">Unit: Square Meters (m&sup2;)</span>
+                    </div>
+                </div>
+
+                <div class="var-def-card">
+                    <div class="var-symbol">C<sub>L</sub></div>
+                    <div class="var-info">
+                        <h3>Lift Coefficient</h3>
+                        <p>Dimensionless parameter representing airfoil efficiency in converting dynamic pressure into vertical upward lift.</p>
+                        <span class="var-unit">Unit: Dimensionless</span>
+                    </div>
+                </div>
+
+                <div class="var-def-card">
+                    <div class="var-symbol">C<sub>D</sub></div>
+                    <div class="var-info">
+                        <h3>Drag Coefficient</h3>
+                        <p>Dimensionless parameter measuring total resistance, combining parasitic drag and lift-induced drag.</p>
+                        <span class="var-unit">Unit: Dimensionless</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- Physics Equations Display Section -->
         <section id="equations" class="section-container">
             <div class="section-header">
-                <h2>Governing Equations & Physics</h2>
-                <p>Real-time parameter evaluation using fundamental fluid mechanics and aerodynamic drag/lift equations.</p>
+                <h2>Governing Equations</h2>
+                <p>Real-time calculation evaluation using fundamental aerodynamic formulas.</p>
             </div>
 
             <div class="equations-grid">
@@ -279,7 +337,7 @@
         <section id="graphs" class="section-container">
             <div class="section-header">
                 <h2>Real-Time Performance Graphs</h2>
-                <p>Observe dynamic changes in coefficients and forces across operating ranges. Operating points update continuously.</p>
+                <p>Observe dynamic changes in coefficients and forces across operating ranges.</p>
             </div>
 
             <div class="graphs-grid">
@@ -327,7 +385,7 @@
                     <div class="edu-icon">🌪️</div>
                     <h3>Bernoulli's Principle</h3>
                     <p>
-                        As fluid flow speed increases, static pressure decreases. An asymmetric airfoil forces air moving over the curved upper surface to travel faster than air underneath, producing a pressure differential resulting in upward suction lift.
+                        As fluid flow speed increases, static pressure decreases. An asymmetric airfoil forces air moving over the curved upper surface to travel faster than air underneath, producing upward pressure differential lift.
                     </p>
                 </div>
 
