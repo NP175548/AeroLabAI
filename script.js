@@ -1,11 +1,11 @@
 // script.js
 
 /**
- * AeroLab — Aerodynamics Simulation Engine
- * Rigorous fluid mechanics model and accurate HTML5 Canvas renderer
+ * AeroLab — Aerodynamics Engine
+ * Interactive pitch, flow particle system, and vector balance renderer
  */
 
-// Flight Dynamics & Display State
+// Flight Dynamics & Visual Display State
 const state = {
     aoa: 4.0,           // Angle of Attack (deg)
     speed: 120,         // True Airspeed v (m/s)
@@ -20,25 +20,27 @@ const state = {
 
     // Airfoil Constant Parameters (NACA 0012 baseline)
     cl0: 0.10,          // Zero-AoA Lift Coefficient
-    cla: 0.10,          // Lift slope per degree (2*pi rad^-1 ≈ 0.109 deg^-1)
+    cla: 0.10,          // Lift slope per degree
     aoaStall: 15.0,     // Stall angle of attack (deg)
     cd0: 0.020,         // Parasitic Drag Coefficient C_D0
     aspectRatio: 8.5,   // Wing Aspect Ratio AR
     oswaldEff: 0.82,    // Oswald Efficiency Factor e
 
-    // Derived Telemetry
+    // Computed Dynamics
     cl: 0,
     cd: 0,
-    lift: 0,            // Force L (N)
-    drag: 0,            // Force D (N)
+    lift: 0,            // Dynamic Lift Force L (N)
+    drag: 0,            // Drag Force D (N)
     q: 0,               // Dynamic Pressure (Pa)
     ldRatio: 0,
     isStalled: false,
-    reqLift: 0,         // Required force to balance weight W = m*g (N)
+    reqLift: 0,         // Equilibrium Lift W = m*g (N)
 
-    // Smooth Vector Arrow Lengths
-    smoothLiftLength: 0,
-    smoothDragLength: 0
+    // Vector Smoothing Interpolations
+    smoothLiftX: 0,
+    smoothLiftY: 0,
+    smoothDragX: 0,
+    smoothDragY: 0
 };
 
 // Aircraft Presets Catalog
@@ -49,7 +51,7 @@ const aircraftPresets = {
     cargo:      { speed: 110, aoa: 5.5, area: 350, mass: 180000,density: 1.225 }
 };
 
-// Streamline Flow Particle System
+// Flow Particle Streamer System
 class StreamParticle {
     constructor(w, h) {
         this.reset(w, h, true);
@@ -63,25 +65,25 @@ class StreamParticle {
     }
 
     update(w, h, foilX, foilY, chord) {
-        // Pitch Angle Correction: Canvas pitch angle is (state.aoa * PI / 180)
-        const rad = (state.aoa * Math.PI) / 180;
+        // Pitch Angle Correction: Canvas positive pitch tilts wing leading edge UP
+        const pitchRad = (state.aoa * Math.PI) / 180;
         
-        // Translate particle relative to wing center
+        // Translate particle position relative to airfoil pivot center
         const dx = this.x - foilX;
         const dy = this.y - foilY;
 
-        // Un-rotate particle coordinates relative to wing coordinate frame
-        const localX = dx * Math.cos(-rad) - dy * Math.sin(-rad);
-        const localY = dx * Math.sin(-rad) + dy * Math.cos(-rad);
+        // Transform into wing local coordinate system
+        const localX = dx * Math.cos(pitchRad) + dy * Math.sin(pitchRad);
+        const localY = -dx * Math.sin(pitchRad) + dy * Math.cos(pitchRad);
 
         const halfChord = chord * 0.5;
         const thickness = chord * 0.12;
 
-        // Particle Interaction with Airfoil Contour
+        // Particle Interaction Boundary
         if (localX > -halfChord * 1.1 && localX < halfChord * 1.1) {
             const normX = Math.max(0, Math.min(1, (localX + halfChord) / chord));
             
-            // NACA 0012 Profile Equation
+            // NACA 0012 Thickness Profile
             const yt = 5 * thickness * (
                 0.2969 * Math.sqrt(normX) - 
                 0.1260 * normX - 
@@ -92,9 +94,9 @@ class StreamParticle {
 
             // Flow Deflection along upper and lower surfaces
             if (localY < 0 && localY > -yt - 28) {
-                // Suction Side (Upper Surface)
+                // Suction Side
                 const targetY = -yt - 6;
-                this.y += (targetY - localY) * 0.15;
+                this.y += (targetY - localY) * 0.12;
                 
                 if (state.isStalled && localX > 0) {
                     // Flow Separation Turbulence in Stall
@@ -102,14 +104,14 @@ class StreamParticle {
                     this.x += (Math.random() - 0.5) * 3;
                 }
             } else if (localY >= 0 && localY < yt + 28) {
-                // Pressure Side (Lower Surface)
+                // Pressure Side
                 const targetY = yt + 6;
-                this.y += (targetY - localY) * 0.15;
+                this.y += (targetY - localY) * 0.12;
             }
         }
 
         // Advance particle downstream
-        this.x += state.speed * 0.05 + 2.5;
+        this.x += state.speed * 0.04 + 2.5;
 
         // Reset if offscreen
         if (this.x > w + 15 || this.y < -20 || this.y > h + 20) {
@@ -117,8 +119,10 @@ class StreamParticle {
         }
     }
 
-    draw(ctx) {
-        ctx.fillStyle = `rgba(0, 240, 255, ${this.alpha})`;
+    draw(ctx, isLightMode) {
+        ctx.fillStyle = isLightMode 
+            ? `rgba(2, 132, 199, ${this.alpha * 1.1})` 
+            : `rgba(0, 240, 255, ${this.alpha})`;
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
         ctx.fill();
@@ -127,41 +131,55 @@ class StreamParticle {
 
 let particles = [];
 
-// Initialize Application
-document.addEventListener('DOMContentLoaded', () => {
+// Initialize Application Logic
+function init() {
     initTheme();
     bindInputs();
     bindPresets();
     bindToggles();
     updatePhysics();
     initCanvas();
+
     window.addEventListener('resize', initCanvas);
     requestAnimationFrame(renderLoop);
-});
+}
 
-// Theme Toggle
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}
+
+// Light / Dark Theme Switcher
 function initTheme() {
     const btn = document.getElementById('theme-toggle');
+    if (!btn) return;
+    
     btn.addEventListener('click', () => {
-        const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-        document.documentElement.setAttribute('data-theme', theme);
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', newTheme);
     });
 }
 
 // Bind Display Toggle Switches
 function bindToggles() {
-    document.getElementById('toggle-vectors').addEventListener('change', (e) => {
-        state.showVectors = e.target.checked;
-    });
-    document.getElementById('toggle-pressure').addEventListener('change', (e) => {
-        state.showPressureGlow = e.target.checked;
-    });
-    document.getElementById('toggle-particles').addEventListener('change', (e) => {
-        state.showParticles = e.target.checked;
-    });
+    const toggleVec = document.getElementById('toggle-vectors');
+    const togglePress = document.getElementById('toggle-pressure');
+    const togglePart = document.getElementById('toggle-particles');
+
+    if (toggleVec) {
+        toggleVec.addEventListener('change', (e) => state.showVectors = e.target.checked);
+    }
+    if (togglePress) {
+        togglePress.addEventListener('change', (e) => state.showPressureGlow = e.target.checked);
+    }
+    if (togglePart) {
+        togglePart.addEventListener('change', (e) => state.showParticles = e.target.checked);
+    }
 }
 
-// Bind Sliders and Input Events
+// Bind Sliders and Reset Controls
 function bindInputs() {
     const sliderMap = [
         { id: 'slider-aoa', key: 'aoa' },
@@ -173,17 +191,24 @@ function bindInputs() {
 
     sliderMap.forEach(item => {
         const el = document.getElementById(item.id);
-        el.addEventListener('input', (e) => {
-            state[item.key] = parseFloat(e.target.value);
-            updatePhysics();
-        });
+        if (el) {
+            const updateHandler = (e) => {
+                state[item.key] = parseFloat(e.target.value);
+                updatePhysics();
+            };
+            el.addEventListener('input', updateHandler);
+            el.addEventListener('change', updateHandler);
+        }
     });
 
-    document.getElementById('reset-params-btn').addEventListener('click', () => {
-        Object.assign(state, aircraftPresets.commercial);
-        syncControls();
-        updatePhysics();
-    });
+    const resetBtn = document.getElementById('reset-params-btn');
+    if (resetBtn) {
+        resetBtn.addEventListener('click', () => {
+            Object.assign(state, aircraftPresets.commercial);
+            syncControls();
+            updatePhysics();
+        });
+    }
 }
 
 // Bind Aircraft Presets
@@ -205,18 +230,22 @@ function bindPresets() {
 }
 
 function syncControls() {
-    document.getElementById('slider-aoa').value = state.aoa;
-    document.getElementById('slider-speed').value = state.speed;
-    document.getElementById('slider-area').value = state.area;
-    document.getElementById('slider-mass').value = state.mass;
-    document.getElementById('slider-density').value = state.density;
+    const setVal = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.value = val;
+    };
+    setVal('slider-aoa', state.aoa);
+    setVal('slider-speed', state.speed);
+    setVal('slider-area', state.area);
+    setVal('slider-mass', state.mass);
+    setVal('slider-density', state.density);
 }
 
-// Core Physics Engine
+// Core Physics Calculations
 function updatePhysics() {
     const alpha = state.aoa;
 
-    // 1. Lift Coefficient (Linear range + Stall Region)
+    // 1. Lift Coefficient (Linear range + Post-Stall Regime)
     if (alpha <= state.aoaStall) {
         state.cl = state.cl0 + state.cla * alpha;
         state.isStalled = false;
@@ -239,79 +268,93 @@ function updatePhysics() {
     // 5. Dynamic Pressure q = 0.5 * rho * v^2
     state.q = 0.5 * state.density * Math.pow(state.speed, 2);
 
-    // 6. Aerodynamic Forces (N)
+    // 6. Generated Forces (N)
     state.lift = state.q * state.area * state.cl;
     state.drag = state.q * state.area * state.cd;
     state.ldRatio = state.drag > 0 ? state.lift / state.drag : 0;
 
-    // 7. Equilibrium Weight W = m * g
+    // 7. Dynamic Equilibrium Weight W = m * g
     const g = 9.81;
     state.reqLift = state.mass * g;
 
     updateUI(cdi);
 }
 
-// Update UI Values
+// Update UI Values and Dynamic Displays
 function updateUI(cdi) {
-    document.getElementById('val-aoa').textContent = state.aoa.toFixed(1);
-    document.getElementById('val-speed').textContent = Math.round(state.speed);
-    document.getElementById('val-knots').textContent = Math.round(state.speed * 1.94384);
-    document.getElementById('val-area').textContent = Math.round(state.area);
-    document.getElementById('val-mass').textContent = state.mass.toLocaleString();
-    document.getElementById('val-density').textContent = state.density.toFixed(3);
+    const setTxt = (id, txt) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = txt;
+    };
 
-    document.getElementById('hud-aoa').textContent = `${state.aoa.toFixed(1)}°`;
-    document.getElementById('hud-speed').textContent = `${Math.round(state.speed)} m/s`;
-    document.getElementById('hud-q').textContent = `${(state.q / 1000).toFixed(2)} kPa`;
+    setTxt('val-aoa', state.aoa.toFixed(1));
+    setTxt('val-speed', Math.round(state.speed));
+    setTxt('val-knots', Math.round(state.speed * 1.94384));
+    setTxt('val-area', Math.round(state.area));
+    setTxt('val-mass', state.mass.toLocaleString());
+    setTxt('val-density', state.density.toFixed(3));
+
+    setTxt('hud-aoa', `${state.aoa.toFixed(1)}°`);
+    setTxt('hud-speed', `${Math.round(state.speed)} m/s`);
+    setTxt('hud-q', `${(state.q / 1000).toFixed(2)} kPa`);
 
     const liftKN = state.lift / 1000;
     const dragKN = state.drag / 1000;
     const reqLiftKN = state.reqLift / 1000;
 
-    document.getElementById('calc-lift').textContent = `${liftKN.toFixed(1)} kN`;
-    document.getElementById('calc-drag').textContent = `${dragKN.toFixed(1)} kN`;
-    document.getElementById('calc-cl').textContent = state.cl.toFixed(3);
-    document.getElementById('calc-cd').innerHTML = `C<sub>D</sub>: ${state.cd.toFixed(3)}`;
-    document.getElementById('calc-ld').textContent = state.ldRatio.toFixed(1);
-    document.getElementById('calc-weight-req').textContent = `Req Weight: ${reqLiftKN.toFixed(1)} kN`;
+    setTxt('calc-lift', `${liftKN.toFixed(1)} kN`);
+    setTxt('calc-drag', `${dragKN.toFixed(1)} kN`);
+    setTxt('calc-cl', state.cl.toFixed(3));
+    
+    const cdEl = document.getElementById('calc-cd');
+    if (cdEl) cdEl.innerHTML = `C<sub>D</sub>: ${state.cd.toFixed(3)}`;
 
-    document.getElementById('hero-lift-val').textContent = `${liftKN.toFixed(1)} kN`;
-    document.getElementById('hero-drag-val').textContent = `${dragKN.toFixed(1)} kN`;
-    document.getElementById('hero-ld-val').textContent = state.ldRatio.toFixed(1);
+    setTxt('calc-ld', state.ldRatio.toFixed(1));
+    setTxt('calc-weight-req', `Req Weight: ${reqLiftKN.toFixed(1)} kN`);
+
+    setTxt('hero-lift-val', `${liftKN.toFixed(1)} kN`);
+    setTxt('hero-drag-val', `${dragKN.toFixed(1)} kN`);
+    setTxt('hero-ld-val', state.ldRatio.toFixed(1));
 
     const badge = document.getElementById('stall-badge');
     const badgeText = document.getElementById('stall-badge-text');
     const heroStatus = document.getElementById('hero-status-val');
 
     if (state.isStalled) {
-        badge.className = 'badge badge-danger';
-        badgeText.textContent = 'Flow Separation (Stall)';
-        heroStatus.textContent = 'STALL SEPARATION';
-        heroStatus.className = 'telemetry-value status-bad';
+        if (badge) badge.className = 'badge badge-danger';
+        if (badgeText) badgeText.textContent = 'Flow Separation (Stall)';
+        if (heroStatus) {
+            heroStatus.textContent = 'STALL SEPARATION';
+            heroStatus.className = 'telemetry-value status-bad';
+        }
     } else {
-        badge.className = 'badge badge-success';
-        badgeText.textContent = 'Laminar Flow Attached';
-        heroStatus.textContent = 'Laminar Attached';
-        heroStatus.className = 'telemetry-value status-good';
+        if (badge) badge.className = 'badge badge-success';
+        if (badgeText) badgeText.textContent = 'Laminar Flow Attached';
+        if (heroStatus) {
+            heroStatus.textContent = 'Laminar Attached';
+            heroStatus.className = 'telemetry-value status-good';
+        }
     }
 
-    document.getElementById('eq-rho-val').textContent = `${state.density.toFixed(3)} kg/m³`;
-    document.getElementById('eq-v-val').textContent = `${Math.round(state.speed)} m/s`;
-    document.getElementById('eq-q-val').textContent = `${(state.q / 1000).toFixed(2)} kPa`;
-    document.getElementById('eq-s-val').textContent = `${Math.round(state.area)} m²`;
-    document.getElementById('eq-cl-val').textContent = state.cl.toFixed(3);
-    document.getElementById('eq-lift-val').textContent = `${liftKN.toFixed(1)} kN`;
+    setTxt('eq-rho-val', `${state.density.toFixed(3)} kg/m³`);
+    setTxt('eq-v-val', `${Math.round(state.speed)} m/s`);
+    setTxt('eq-q-val', `${(state.q / 1000).toFixed(2)} kPa`);
+    setTxt('eq-s-val', `${Math.round(state.area)} m²`);
+    setTxt('eq-cl-val', state.cl.toFixed(3));
+    setTxt('eq-lift-val', `${liftKN.toFixed(1)} kN`);
 
-    document.getElementById('eq-cd0-val').textContent = state.cd0.toFixed(3);
-    document.getElementById('eq-cdi-val').textContent = cdi.toFixed(3);
-    document.getElementById('eq-cd-val').textContent = state.cd.toFixed(3);
-    document.getElementById('eq-ld-val').textContent = state.ldRatio.toFixed(1);
-    document.getElementById('eq-drag-val').textContent = `${dragKN.toFixed(1)} kN`;
+    setTxt('eq-cd0-val', state.cd0.toFixed(3));
+    setTxt('eq-cdi-val', cdi.toFixed(3));
+    setTxt('eq-cd-val', state.cd.toFixed(3));
+    setTxt('eq-ld-val', state.ldRatio.toFixed(1));
+    setTxt('eq-drag-val', `${dragKN.toFixed(1)} kN`);
 }
 
 // Canvas Initialization
 function initCanvas() {
     const canvas = document.getElementById('airfoil-canvas');
+    if (!canvas) return;
+
     const rect = canvas.parentNode.getBoundingClientRect();
     const dpr = window.devicePixelRatio || 1;
 
@@ -324,14 +367,14 @@ function initCanvas() {
     particles = Array.from({ length: 120 }, () => new StreamParticle(rect.width, rect.height));
 }
 
-// Main Animation Loop
+// Animation Render Loop
 function renderLoop() {
     renderCanvas();
     renderBgParticles();
     requestAnimationFrame(renderLoop);
 }
 
-// Render Airfoil & Visual Overlays
+// Main Simulation Renderer
 function renderCanvas() {
     const canvas = document.getElementById('airfoil-canvas');
     if (!canvas) return;
@@ -341,52 +384,58 @@ function renderCanvas() {
     const w = canvas.width / dpr;
     const h = canvas.height / dpr;
 
+    const isLightMode = document.documentElement.getAttribute('data-theme') === 'light';
+
     ctx.clearRect(0, 0, w, h);
 
     const foilX = w * 0.45;
     const foilY = h * 0.50;
     const chord = Math.min(w, h) * 0.42;
 
-    // 1. Draw Streamline Particles (If Toggled)
+    // 1. Draw Flow Streamline Particles
     if (state.showParticles) {
         particles.forEach(p => {
             p.update(w, h, foilX, foilY, chord);
-            p.draw(ctx);
+            p.draw(ctx, isLightMode);
         });
     }
 
     // 2. Airfoil Pitch Alignment:
-    // Standard Canvas 2D: +Y is DOWN.
-    // For positive AoA (nose pointing UP), the leading edge (at local -chord/2) must move UP (-Y).
-    // Rotation angle = +(state.aoa * PI / 180).
-    const pitchRad = (state.aoa * Math.PI) / 180;
+    // Canvas pitch logic:
+    // To tilt the NOSE (leading edge) UP when Angle of Attack (AoA) is POSITIVE (+):
+    // In Canvas 2D (+Y is down), rotating by -AoA turns counter-clockwise, moving nose (-X) UP (-Y).
+    const pitchRad = -(state.aoa * Math.PI) / 180;
 
     ctx.save();
     ctx.translate(foilX, foilY);
     ctx.rotate(pitchRad);
 
-    // Dynamic Pressure Field Gradient (If Toggled)
+    // Force Field Gradient (If Toggled)
     if (state.showPressureGlow) {
         const topGlow = ctx.createRadialGradient(0, -15, 2, 0, -15, chord * 0.55);
-        topGlow.addColorStop(0, state.isStalled ? 'rgba(239, 68, 68, 0.40)' : 'rgba(0, 136, 255, 0.35)');
+        if (state.isStalled) {
+            topGlow.addColorStop(0, 'rgba(239, 68, 68, 0.40)');
+        } else {
+            topGlow.addColorStop(0, isLightMode ? 'rgba(2, 132, 199, 0.35)' : 'rgba(0, 240, 255, 0.35)');
+        }
         topGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
         ctx.fillStyle = topGlow;
         ctx.fillRect(-chord, -chord, chord * 2, chord);
 
         const botGlow = ctx.createRadialGradient(0, 15, 2, 0, 15, chord * 0.55);
-        botGlow.addColorStop(0, 'rgba(239, 68, 68, 0.30)');
+        botGlow.addColorStop(0, 'rgba(239, 68, 68, 0.25)');
         botGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
         ctx.fillStyle = botGlow;
         ctx.fillRect(-chord, 0, chord * 2, chord);
     }
 
-    // Plot NACA 0012 Airfoil Profile
+    // NACA 0012 Profile Geometry
     ctx.beginPath();
-    ctx.fillStyle = '#111827';
-    ctx.strokeStyle = '#00f0ff';
+    ctx.fillStyle = isLightMode ? '#1e293b' : '#0f172a';
+    ctx.strokeStyle = isLightMode ? '#0284c7' : '#00f0ff';
     ctx.lineWidth = 2.5;
 
-    // Upper Contour
+    // Upper Profile Curve
     for (let i = 0; i <= 100; i++) {
         const xNorm = i / 100;
         const x = (xNorm - 0.5) * chord;
@@ -401,7 +450,7 @@ function renderCanvas() {
         else ctx.lineTo(x, -yt);
     }
 
-    // Lower Contour
+    // Lower Profile Curve
     for (let i = 100; i >= 0; i--) {
         const xNorm = i / 100;
         const x = (xNorm - 0.5) * chord;
@@ -419,9 +468,9 @@ function renderCanvas() {
     ctx.fill();
     ctx.stroke();
 
-    // Chord Reference Line
+    // Chord Center Reference Line
     ctx.beginPath();
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+    ctx.strokeStyle = isLightMode ? 'rgba(0, 0, 0, 0.2)' : 'rgba(255, 255, 255, 0.25)';
     ctx.setLineDash([4, 4]);
     ctx.moveTo(-chord * 0.5, 0);
     ctx.lineTo(chord * 0.5, 0);
@@ -430,41 +479,59 @@ function renderCanvas() {
 
     ctx.restore();
 
-    // 3. Draw Smoothed Aerodynamic Force Vectors (If Toggled)
+    // 3. Draw Ultra-Smooth Force Vector Arrows
     if (state.showVectors) {
-        // Target vector lengths (bounded)
+        // Target vector lengths (pixels)
         const targetLiftLen = Math.min(130, Math.max(-100, (state.lift / 1000) * 0.08));
         const targetDragLen = Math.min(100, Math.max(0, (state.drag / 1000) * 0.40));
 
-        // Smooth Linear Interpolation (lerp)
-        state.smoothLiftLength += (targetLiftLen - state.smoothLiftLength) * 0.1;
-        state.smoothDragLength += (targetDragLen - state.smoothDragLength) * 0.1;
+        // Target End Points in World Space
+        const targetLiftX = foilX;
+        const targetLiftY = foilY - targetLiftLen;
 
-        // Lift Vector (Points UP perpendicular to relative wind)
+        const targetDragX = foilX + targetDragLen;
+        const targetDragY = foilY;
+
+        // Exponential Smoothing (lerp)
+        state.smoothLiftX += (targetLiftX - state.smoothLiftX) * 0.12;
+        state.smoothLiftY += (targetLiftY - state.smoothLiftY) * 0.12;
+        state.smoothDragX += (targetDragX - state.smoothDragX) * 0.12;
+        state.smoothDragY += (targetDragY - state.smoothDragY) * 0.12;
+
+        if (Math.hypot(state.smoothLiftX - foilX, state.smoothLiftY - foilY) === 0) {
+            state.smoothLiftX = targetLiftX;
+            state.smoothLiftY = targetLiftY;
+            state.smoothDragX = targetDragX;
+            state.smoothDragY = targetDragY;
+        }
+
+        // Lift Vector (Cyan / Blue)
         drawSmoothVector(
             ctx, foilX, foilY, 
-            foilX, foilY - state.smoothLiftLength, 
-            '#00f0ff', 
-            `Lift (${(state.lift / 1000).toFixed(1)} kN)`
+            state.smoothLiftX, state.smoothLiftY, 
+            isLightMode ? '#0284c7' : '#00f0ff', 
+            `Lift (${(state.lift / 1000).toFixed(1)} kN)`,
+            isLightMode
         );
 
-        // Drag Vector (Points DOWNSTREAM / RIGHT parallel to relative wind)
+        // Drag Vector (Red)
         drawSmoothVector(
             ctx, foilX, foilY, 
-            foilX + state.smoothDragLength, foilY, 
+            state.smoothDragX, state.smoothDragY, 
             '#ef4444', 
-            `Drag (${(state.drag / 1000).toFixed(1)} kN)`
+            `Drag (${(state.drag / 1000).toFixed(1)} kN)`,
+            isLightMode
         );
     }
 }
 
-// Render Smooth Anti-Aliased Vector Arrow
-function drawSmoothVector(ctx, fromX, fromY, toX, toY, color, label) {
+// Render Anti-Aliased Vector Arrow
+function drawSmoothVector(ctx, fromX, fromY, toX, toY, color, label, isLightMode) {
     const dx = toX - fromX;
     const dy = toY - fromY;
     const dist = Math.hypot(dx, dy);
 
-    if (dist < 4) return;
+    if (dist < 3) return;
 
     const headLen = 10;
     const angle = Math.atan2(dy, dx);
@@ -476,17 +543,13 @@ function drawSmoothVector(ctx, fromX, fromY, toX, toY, color, label) {
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
-    // Outer Glow Line for Smooth Rendering
-    ctx.shadowColor = color;
-    ctx.shadowBlur = 8;
-
-    // Vector Shaft
+    // Anti-Aliased Vector Line
     ctx.beginPath();
     ctx.moveTo(fromX, fromY);
     ctx.lineTo(toX, toY);
     ctx.stroke();
 
-    // Arrowhead
+    // Sharp Arrowhead
     ctx.beginPath();
     ctx.moveTo(toX, toY);
     ctx.lineTo(
@@ -500,17 +563,18 @@ function drawSmoothVector(ctx, fromX, fromY, toX, toY, color, label) {
     ctx.closePath();
     ctx.fill();
 
-    // Text Label
-    ctx.shadowBlur = 0;
+    // Text Label Overlay
     ctx.font = '600 11px "JetBrains Mono", monospace';
-    const labelX = toX + (dx >= 0 ? 8 : -75);
-    const labelY = toY + (dy < 0 ? -6 : 14);
+    ctx.fillStyle = isLightMode ? '#0f172a' : '#f8fafc';
+
+    const labelX = toX + (dx >= 0 ? 10 : -85);
+    const labelY = toY + (dy < 0 ? -8 : 16);
     ctx.fillText(label, labelX, labelY);
 
     ctx.restore();
 }
 
-// Ambient Background Particles
+// Ambient Background Canvas Particles
 function renderBgParticles() {
     const canvas = document.getElementById('bg-particle-canvas');
     if (!canvas) return;
@@ -525,7 +589,9 @@ function renderBgParticles() {
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
 
-    ctx.fillStyle = 'rgba(0, 136, 255, 0.12)';
+    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    ctx.fillStyle = isLight ? 'rgba(2, 132, 199, 0.08)' : 'rgba(0, 136, 255, 0.12)';
+
     for (let i = 0; i < 25; i++) {
         const x = (Math.sin(Date.now() * 0.0003 + i) * 0.5 + 0.5) * window.innerWidth;
         const y = (Math.cos(Date.now() * 0.0002 + i * 1.5) * 0.5 + 0.5) * window.innerHeight;

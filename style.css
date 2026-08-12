@@ -6,12 +6,14 @@
     --bg-surface: #0e1424;
     --bg-card: rgba(18, 26, 44, 0.75);
     --bg-card-hover: rgba(26, 38, 64, 0.90);
+    --sim-bg: #090d16;
     
     --border-color: rgba(255, 255, 255, 0.08);
     --border-highlight: rgba(0, 162, 255, 0.35);
 
-    --slider-track: rgba(255, 255, 255, 0.18);
-    --slider-track-border: rgba(255, 255, 255, 0.05);
+    --slider-track-bg: #27354a;
+    --slider-track-border: rgba(255, 255, 255, 0.15);
+    --slider-thumb-bg: #0088ff;
 
     --text-primary: #f8fafc;
     --text-secondary: #94a3b8;
@@ -36,21 +38,23 @@
 [data-theme="light"] {
     --bg-main: #f1f5f9;
     --bg-surface: #ffffff;
-    --bg-card: rgba(255, 255, 255, 0.90);
-    --bg-card-hover: #ffffff;
+    --bg-card: #ffffff;
+    --bg-card-hover: #f8fafc;
+    --sim-bg: #f8fafc;
 
-    --border-color: rgba(0, 0, 0, 0.10);
-    --border-highlight: rgba(0, 102, 255, 0.30);
+    --border-color: rgba(0, 0, 0, 0.12);
+    --border-highlight: rgba(0, 102, 255, 0.40);
 
-    --slider-track: rgba(0, 0, 0, 0.18);
-    --slider-track-border: rgba(0, 0, 0, 0.08);
+    --slider-track-bg: #cbd5e1;
+    --slider-track-border: rgba(0, 0, 0, 0.20);
+    --slider-thumb-bg: #0284c7;
 
     --text-primary: #0f172a;
     --text-secondary: #475569;
-    --text-muted: #94a3b8;
+    --text-muted: #64748b;
 
     --color-blue: #0284c7;
-    --color-cyan: #0891b2;
+    --color-cyan: #0284c7;
     --color-green: #059669;
     --color-amber: #d97706;
     --color-red: #dc2626;
@@ -213,8 +217,8 @@ body {
     font-size: 0.78rem;
     font-weight: 600;
     color: var(--color-cyan);
-    background: rgba(0, 240, 255, 0.08);
-    border: 1px solid rgba(0, 240, 255, 0.2);
+    background: rgba(0, 136, 255, 0.08);
+    border: 1px solid rgba(0, 136, 255, 0.2);
     padding: 0.3rem 0.8rem;
     border-radius: 20px;
     margin-bottom: 1rem;
@@ -359,20 +363,17 @@ body {
     100% { opacity: 0.6; }
 }
 
-/* Airfoil Canvas Card */
+/* Airfoil Canvas Card (Light/Dark Clean Adaptation) */
 .canvas-card {
     position: relative;
     width: 100%;
     height: 400px;
-    background: rgba(5, 8, 16, 0.85);
+    background: var(--sim-bg);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
     overflow: hidden;
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
-}
-
-[data-theme="light"] .canvas-card {
-    background: #090d16;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+    transition: background 0.3s ease;
 }
 
 #airfoil-canvas {
@@ -391,14 +392,15 @@ body {
 .hud-top-left {
     top: 14px;
     left: 16px;
-    background: rgba(0, 0, 0, 0.65);
+    background: var(--bg-card);
     backdrop-filter: blur(8px);
     padding: 0.5rem 0.85rem;
     border-radius: var(--radius-sm);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    border: 1px solid var(--border-color);
     display: flex;
     flex-direction: column;
     gap: 0.2rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 }
 
 .hud-metric {
@@ -407,11 +409,11 @@ body {
 }
 
 .hud-label {
-    color: #94a3b8;
+    color: var(--text-muted);
 }
 
 .hud-val {
-    color: #f8fafc;
+    color: var(--text-primary);
     font-weight: 600;
 }
 
@@ -424,12 +426,13 @@ body {
     display: flex;
     align-items: center;
     gap: 0.85rem;
-    background: rgba(0, 0, 0, 0.65);
+    background: var(--bg-card);
     backdrop-filter: blur(8px);
     padding: 0.4rem 0.85rem;
     border-radius: var(--radius-sm);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    border: 1px solid var(--border-color);
     font-size: 0.72rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 }
 
 .legend-indicator {
@@ -440,10 +443,10 @@ body {
 
 .lift-indicator { background-color: var(--color-cyan); }
 .drag-indicator { background-color: var(--color-red); }
-.flow-indicator { background-color: rgba(0, 200, 255, 0.8); }
+.flow-indicator { background-color: var(--color-blue); }
 
 .legend-text {
-    color: #cbd5e1;
+    color: var(--text-secondary);
 }
 
 /* Simulation Control Panel Cards */
@@ -459,6 +462,7 @@ body {
     border-radius: var(--radius-lg);
     padding: 1.25rem;
     backdrop-filter: var(--glass-backdrop);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.04);
 }
 
 .card-header {
@@ -512,7 +516,7 @@ body {
 .toggle-slider {
     width: 36px;
     height: 20px;
-    background-color: var(--slider-track);
+    background-color: var(--slider-track-bg);
     border-radius: 20px;
     position: relative;
     transition: background-color 0.2s ease;
@@ -544,7 +548,7 @@ body {
     color: var(--text-primary);
 }
 
-/* Control Groups & Light-Mode Compatible Range Sliders */
+/* Control Groups & Fully Visible Cross-Theme Range Sliders */
 .control-group {
     margin-bottom: 1rem;
 }
@@ -571,66 +575,62 @@ body {
     color: var(--text-primary);
 }
 
-/* Custom Range Input (Fully Visible in Both Light & Dark Theme) */
-input[type=range] {
-    width: 100%;
+/* Unified Cross-Browser Custom Range Input */
+input[type="range"] {
     -webkit-appearance: none;
     appearance: none;
-    background: transparent;
-}
-
-input[type=range]:focus {
+    width: 100%;
+    height: 8px;
+    background: var(--slider-track-bg);
+    border: 1px solid var(--slider-track-border);
+    border-radius: 6px;
     outline: none;
+    margin: 8px 0;
 }
 
-/* Slider Track - Webkit */
-input[type=range]::-webkit-slider-runnable-track {
+/* Webkit Track & Thumb */
+input[type="range"]::-webkit-slider-runnable-track {
     width: 100%;
     height: 8px;
-    cursor: pointer;
-    background: var(--slider-track);
-    border: 1px solid var(--slider-track-border);
-    border-radius: 4px;
+    background: var(--slider-track-bg);
+    border-radius: 6px;
 }
 
-/* Slider Track - Firefox */
-input[type=range]::-moz-range-track {
-    width: 100%;
-    height: 8px;
-    cursor: pointer;
-    background: var(--slider-track);
-    border: 1px solid var(--slider-track-border);
-    border-radius: 4px;
-}
-
-/* Slider Thumb - Webkit */
-input[type=range]::-webkit-slider-thumb {
-    height: 18px;
-    width: 18px;
-    border-radius: 50%;
-    background: var(--color-blue);
-    border: 2px solid #ffffff;
-    cursor: pointer;
+input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none;
-    margin-top: -6px;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--slider-thumb-bg);
+    border: 2px solid #ffffff;
+    cursor: pointer;
+    margin-top: -5px;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
-    transition: transform 0.1s ease;
+    transition: transform 0.15s ease;
 }
 
-/* Slider Thumb - Firefox */
-input[type=range]::-moz-range-thumb {
-    height: 18px;
+/* Firefox Track & Thumb */
+input[type="range"]::-moz-range-track {
+    width: 100%;
+    height: 8px;
+    background: var(--slider-track-bg);
+    border-radius: 6px;
+}
+
+input[type="range"]::-moz-range-thumb {
     width: 18px;
+    height: 18px;
     border-radius: 50%;
-    background: var(--color-blue);
+    background: var(--slider-thumb-bg);
     border: 2px solid #ffffff;
     cursor: pointer;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
-    transition: transform 0.1s ease;
+    transition: transform 0.15s ease;
 }
 
-input[type=range]::-webkit-slider-thumb:hover,
-input[type=range]::-moz-range-thumb:hover {
+input[type="range"]::-webkit-slider-thumb:hover,
+input[type="range"]::-moz-range-thumb:hover {
     transform: scale(1.15);
 }
 
@@ -661,12 +661,16 @@ input[type=range]::-moz-range-thumb:hover {
 }
 
 .result-box {
-    background: rgba(0, 0, 0, 0.15);
+    background: rgba(0, 0, 0, 0.04);
     border: 1px solid var(--border-color);
     padding: 0.75rem;
     border-radius: var(--radius-sm);
     display: flex;
     flex-direction: column;
+}
+
+[data-theme="dark"] .result-box {
+    background: rgba(0, 0, 0, 0.2);
 }
 
 .result-label {
@@ -719,8 +723,8 @@ input[type=range]::-moz-range-thumb:hover {
     font-size: 1.6rem;
     font-weight: 700;
     color: var(--color-cyan);
-    background: rgba(0, 240, 255, 0.08);
-    border: 1px solid rgba(0, 240, 255, 0.2);
+    background: rgba(0, 136, 255, 0.08);
+    border: 1px solid rgba(0, 136, 255, 0.2);
     width: 50px;
     height: 50px;
     border-radius: var(--radius-sm);
@@ -777,7 +781,7 @@ input[type=range]::-moz-range-thumb:hover {
 
 .eq-badge {
     font-size: 0.68rem;
-    background: rgba(255, 255, 255, 0.06);
+    background: rgba(0, 0, 0, 0.05);
     border: 1px solid var(--border-color);
     padding: 0.2rem 0.5rem;
     border-radius: 4px;
@@ -789,11 +793,16 @@ input[type=range]::-moz-range-thumb:hover {
     font-size: 1.05rem;
     text-align: center;
     padding: 1rem;
-    background: rgba(0, 0, 0, 0.2);
+    background: rgba(0, 0, 0, 0.04);
     border-radius: var(--radius-sm);
     border: 1px solid var(--border-color);
     margin-bottom: 1.25rem;
     color: var(--color-cyan);
+    font-weight: 600;
+}
+
+[data-theme="dark"] .eq-formula-box {
+    background: rgba(0, 0, 0, 0.25);
 }
 
 .eq-breakdown {
@@ -852,7 +861,7 @@ input[type=range]::-moz-range-thumb:hover {
 
 .preset-card.active {
     border-color: var(--color-blue);
-    box-shadow: 0 0 20px rgba(0, 136, 255, 0.2);
+    box-shadow: 0 0 20px rgba(0, 136, 255, 0.15);
 }
 
 .preset-badge {
