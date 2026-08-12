@@ -1,25 +1,13 @@
-<!-- index.html -->
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AeroLab — Interactive Aerodynamics</title>
+    <title>AeroLab — Aerodynamics Simulator</title>
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <!-- MathJax for rendering equations -->
-    <script>
-        window.MathJax = {
-            tex: {
-                inlineMath: [['$', '$'], ['\\(', '\\)']],
-                displayMath: [['$$', '$$'], ['\\[', '\\]']]
-            },
-            svg: { fontCache: 'global' }
-        };
-    </script>
-    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
 </head>
 <body>
     <canvas id="bg-particles"></canvas>
@@ -34,7 +22,7 @@
             <div class="nav-links">
                 <a href="#hero" class="nav-link active">Home</a>
                 <a href="#simulator" class="nav-link">Simulator</a>
-                <a href="#presets" class="nav-link">Aircraft</a>
+                <a href="#presets" class="nav-link">Presets</a>
                 <a href="#telemetry" class="nav-link">Telemetry</a>
                 <a href="#education" class="nav-link">Theory</a>
             </div>
@@ -65,9 +53,9 @@
     <section id="hero" class="hero-section">
         <div class="hero-content">
             <div class="hero-tag">Aerodynamic Physics Engine</div>
-            <h1 class="hero-title">Master the Principles of Flight</h1>
+            <h1 class="hero-title">Principles of Aerodynamics</h1>
             <p class="hero-description">
-                An interactive laboratory for fluid dynamics, airfoil lift, boundary layer behavior, and aircraft performance telemetry.
+                Interactive laboratory for fluid dynamics, airfoil lift calculations, boundary layer behavior, and flight telemetry.
             </p>
             <div class="hero-actions">
                 <a href="#simulator" class="btn btn-primary btn-lg">Open Laboratory</a>
@@ -111,7 +99,7 @@
 
                 <div class="control-group">
                     <div class="control-label">
-                        <span>Airspeed ($V$)</span>
+                        <span>Airspeed (<i>V</i>)</span>
                         <span class="value-display"><strong id="val-speed">240</strong> km/h</span>
                     </div>
                     <input type="range" id="param-speed" min="40" max="600" value="240" step="5">
@@ -119,7 +107,7 @@
 
                 <div class="control-group">
                     <div class="control-label">
-                        <span>Angle of Attack ($\alpha$)</span>
+                        <span>Angle of Attack (<i>α</i>)</span>
                         <span class="value-display"><strong id="val-aoa">6.0</strong>°</span>
                     </div>
                     <input type="range" id="param-aoa" min="-5" max="25" value="6" step="0.5">
@@ -127,7 +115,7 @@
 
                 <div class="control-group">
                     <div class="control-label">
-                        <span>Wing Surface Area ($S$)</span>
+                        <span>Wing Surface Area (<i>S</i>)</span>
                         <span class="value-display"><strong id="val-area">45</strong> m²</span>
                     </div>
                     <input type="range" id="param-area" min="10" max="150" value="45" step="1">
@@ -135,7 +123,7 @@
 
                 <div class="control-group">
                     <div class="control-label">
-                        <span>Aircraft Weight ($W$)</span>
+                        <span>Aircraft Weight (<i>W</i>)</span>
                         <span class="value-display"><strong id="val-weight">120</strong> kN</span>
                     </div>
                     <input type="range" id="param-weight" min="10" max="350" value="120" step="5">
@@ -143,7 +131,7 @@
 
                 <div class="control-group">
                     <div class="control-label">
-                        <span>Air Density ($\rho$)</span>
+                        <span>Air Density (<i>ρ</i>)</span>
                         <span class="value-display"><strong id="val-density">1.225</strong> kg/m³</span>
                     </div>
                     <input type="range" id="param-density" min="0.400" max="1.400" value="1.225" step="0.025">
@@ -176,7 +164,7 @@
                         <span class="status-text" id="status-text">Level Flight</span>
                     </div>
                     <div class="stall-alert hidden" id="stall-warning">
-                        STALL WARNING: AIRFLOW SEPARATION
+                        STALL WARNING: FLOW SEPARATION
                     </div>
                 </div>
 
@@ -210,8 +198,8 @@
     <!-- Aircraft Presets Section -->
     <section id="presets" class="presets-section">
         <div class="section-header">
-            <span class="section-subtitle">Aircraft Library</span>
-            <h2 class="section-title">Configurations</h2>
+            <span class="section-subtitle">Aircraft Profiles</span>
+            <h2 class="section-title">Presets</h2>
         </div>
 
         <div class="presets-grid">
@@ -264,30 +252,36 @@
     <!-- Telemetry & Live Graphs Section -->
     <section id="telemetry" class="telemetry-section">
         <div class="section-header">
-            <span class="section-subtitle">Real-Time Data</span>
+            <span class="section-subtitle">Real-Time Telemetry</span>
             <h2 class="section-title">Performance Curves</h2>
         </div>
 
         <div class="graphs-grid">
             <div class="graph-card card">
                 <div class="graph-header">
-                    <h4>Lift Coefficient ($C_L$) vs Angle of Attack ($\alpha$)</h4>
+                    <h4>Lift Coefficient (<i>C<sub>L</sub></i>) vs Angle of Attack (<i>α</i>)</h4>
                 </div>
-                <canvas id="graph-cl-aoa"></canvas>
+                <div class="graph-wrapper">
+                    <canvas id="graph-cl-aoa"></canvas>
+                </div>
             </div>
 
             <div class="graph-card card">
                 <div class="graph-header">
-                    <h4>Drag Force ($D$) vs Speed ($V$)</h4>
+                    <h4>Drag Force (<i>D</i>) vs Speed (<i>V</i>)</h4>
                 </div>
-                <canvas id="graph-drag-speed"></canvas>
+                <div class="graph-wrapper">
+                    <canvas id="graph-drag-speed"></canvas>
+                </div>
             </div>
 
             <div class="graph-card card full-width">
                 <div class="graph-header">
-                    <h4>Efficiency ($L/D$) vs Angle of Attack ($\alpha$)</h4>
+                    <h4>Efficiency (<i>L/D</i>) vs Angle of Attack (<i>α</i>)</h4>
                 </div>
-                <canvas id="graph-efficiency"></canvas>
+                <div class="graph-wrapper">
+                    <canvas id="graph-efficiency"></canvas>
+                </div>
             </div>
         </div>
     </section>
@@ -296,7 +290,7 @@
     <section id="education" class="education-section">
         <div class="section-header">
             <span class="section-subtitle">Aerodynamic Principles</span>
-            <h2 class="section-title">Theory & Physics</h2>
+            <h2 class="section-title">Theory & Equations</h2>
         </div>
 
         <div class="theory-grid">
@@ -306,7 +300,7 @@
                     Fluid velocity increase over the curved upper surface of an airfoil reduces static local pressure relative to the lower surface.
                 </p>
                 <div class="formula-box">
-                    $$P + \frac{1}{2}\rho v^2 = \text{constant}$$
+                    <i>P</i> + ½ <i>ρ</i> <i>v</i>² = <strong>Constant</strong>
                 </div>
             </div>
 
@@ -316,27 +310,27 @@
                     Deflection of passing air downward (downwash) creates an equal and opposite reaction force pushing the wing upward.
                 </p>
                 <div class="formula-box">
-                    $$F = \frac{\Delta p}{\Delta t}$$
+                    <i>F</i> = Δ<i>p</i> / Δ<i>t</i>
                 </div>
             </div>
 
             <div class="theory-card card">
                 <h3>Angle of Attack & Stall</h3>
                 <p>
-                    Beyond critical angle ($\alpha_{\text{crit}} \approx 15^\circ$), airflow detaches from the upper wing surface, collapsing lift.
+                    Beyond critical angle (<i>α</i><sub>crit</sub> ≈ 15°), airflow detaches from the upper wing surface, collapsing lift.
                 </p>
                 <div class="formula-box">
-                    $$\alpha > \alpha_{\text{crit}} \implies \text{Boundary Layer Separation}$$
+                    <i>α</i> &gt; <i>α</i><sub>crit</sub> ⇒ Boundary Layer Separation
                 </div>
             </div>
 
             <div class="theory-card card">
                 <h3>The Lift Equation</h3>
                 <p>
-                    Total lift is proportional to dynamic pressure ($\frac{1}{2}\rho V^2$), wing reference surface area ($S$), and lift coefficient ($C_L$).
+                    Total lift is proportional to dynamic pressure (½ <i>ρ</i> <i>V</i>²), wing reference surface area (<i>S</i>), and lift coefficient (<i>C</i><sub>L</sub>).
                 </p>
                 <div class="formula-box">
-                    $$L = \frac{1}{2} \, \rho \, V^2 \, S \, C_L$$
+                    <i>L</i> = ½ · <i>ρ</i> · <i>V</i>² · <i>S</i> · <i>C</i><sub>L</sub>
                 </div>
             </div>
         </div>

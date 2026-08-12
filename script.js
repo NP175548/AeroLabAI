@@ -1,6 +1,5 @@
-// script.js
+// AeroLab Simulation Engine
 
-// Global Aerodynamics State
 const state = {
     speed: 240,       // km/h
     aoa: 6.0,         // deg
@@ -11,7 +10,7 @@ const state = {
     showPressure: true,
     showParticles: true,
 
-    // Physics
+    // Physics Results
     cL: 0,
     cD: 0,
     lift: 0,
@@ -21,7 +20,6 @@ const state = {
     criticalAoA: 15.0
 };
 
-// Aircraft Presets
 const presets = {
     passenger: { speed: 450, aoa: 4.5, area: 125, weight: 220, density: 1.225 },
     fighter: { speed: 580, aoa: 8.0, area: 48, weight: 140, density: 1.225 },
@@ -29,7 +27,6 @@ const presets = {
     cargo: { speed: 310, aoa: 6.5, area: 310, weight: 320, density: 1.225 }
 };
 
-// Airfoil Particle Engine
 class StreamParticle {
     constructor(w, h) {
         this.reset(w, h, true);
@@ -57,7 +54,7 @@ class StreamParticle {
             if (state.isStalled) {
                 if (this.x > cx) {
                     this.vx += (Math.random() - 0.5) * 1.5;
-                    this.vy += (Math.random() - 0.5) * 2 - 0.4;
+                    this.vy += (Math.random() - 0.5) * 2.5 - 0.5;
                 }
             } else {
                 const angleEffect = Math.sin(rad) * influence;
@@ -81,7 +78,7 @@ class StreamParticle {
     draw(ctx, isDark) {
         ctx.beginPath();
         ctx.arc(this.x, this.y, 1.2, 0, Math.PI * 2);
-        ctx.fillStyle = isDark ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.3)';
+        ctx.fillStyle = isDark ? 'rgba(255, 255, 255, 0.45)' : 'rgba(0, 0, 0, 0.35)';
         ctx.fill();
     }
 }
@@ -101,7 +98,7 @@ document.addEventListener('DOMContentLoaded', () => {
     requestAnimationFrame(renderLoop);
 });
 
-// Theme Management (Light / Dark)
+// Theme Toggle
 function initTheme() {
     const toggleBtn = document.getElementById('theme-toggle');
     toggleBtn.addEventListener('click', () => {
@@ -112,10 +109,11 @@ function initTheme() {
     });
 }
 
-// Setup Sliders & Checkboxes
+// Controls Logic
 function initControls() {
     ['speed', 'aoa', 'area', 'weight', 'density'].forEach(id => {
         const input = document.getElementById(`param-${id}`);
+        if (!input) return;
         input.addEventListener('input', (e) => {
             state[id] = parseFloat(e.target.value);
             document.getElementById(`val-${id}`).innerText = state[id];
@@ -131,14 +129,14 @@ function initControls() {
     document.getElementById('reset-params').addEventListener('click', () => applyPreset(presets.passenger));
 }
 
-// Aerodynamic Physics Model
+// Physics Formulas
 function calculatePhysics() {
     const vMS = state.speed / 3.6; // Speed in m/s
     const alphaRad = (state.aoa * Math.PI) / 180;
 
     state.isStalled = state.aoa > state.criticalAoA;
 
-    // Lift Coefficient
+    // Lift Coefficient calculation
     if (!state.isStalled) {
         state.cL = 0.25 + 2 * Math.PI * alphaRad * 0.85;
     } else {
@@ -147,7 +145,7 @@ function calculatePhysics() {
         state.cL = Math.max(0.15, maxCL - diff * 0.08);
     }
 
-    // Drag Coefficient (Induced + Parasite)
+    // Drag Coefficient calculation
     const cD0 = 0.02;
     const aspectR = 7.5;
     const e = 0.82;
@@ -205,7 +203,7 @@ function updateUI() {
     if (heroLD) heroLD.innerText = state.ldRatio.toFixed(1);
 }
 
-// Canvas Initialization
+// Canvas Initialization with resizing
 function initCanvases() {
     mainCanvas = document.getElementById('airfoil-canvas');
     mainCtx = mainCanvas.getContext('2d');
@@ -217,22 +215,21 @@ function initCanvases() {
     });
 
     particles = [];
-    for (let i = 0; i < 100; i++) {
-        particles.push(new StreamParticle(mainCanvas.width, mainCanvas.height));
+    for (let i = 0; i < 90; i++) {
+        particles.push(new StreamParticle(mainCanvas.width || 600, mainCanvas.height || 380));
     }
 
     renderGraphs();
 }
 
 function resizeCanvas(canvas) {
+    if (!canvas) return;
     const rect = canvas.parentElement.getBoundingClientRect();
-    if (rect.width > 0 && rect.height > 0) {
-        canvas.width = rect.width;
-        canvas.height = rect.height;
-    }
+    canvas.width = rect.width || 600;
+    canvas.height = rect.height || 300;
 }
 
-// Presets Handling
+// Aircraft Presets
 function initPresets() {
     const cards = document.querySelectorAll('.preset-card');
     cards.forEach(card => {
@@ -261,7 +258,7 @@ function applyPreset(p) {
     renderGraphs();
 }
 
-// Background Subtle Particles
+// Ambient Background Particles
 function initBgParticles() {
     const bgCanvas = document.getElementById('bg-particles');
     const bgCtx = bgCanvas.getContext('2d');
@@ -273,7 +270,7 @@ function initBgParticles() {
     resizeBg();
     window.addEventListener('resize', resizeBg);
 
-    bgParticles = Array.from({ length: 40 }, () => ({
+    bgParticles = Array.from({ length: 35 }, () => ({
         x: Math.random() * bgCanvas.width,
         y: Math.random() * bgCanvas.height,
         r: Math.random() * 1.5 + 0.5,
@@ -283,7 +280,7 @@ function initBgParticles() {
     function animBg() {
         bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
         const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-        bgCtx.fillStyle = isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.15)';
+        bgCtx.fillStyle = isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.12)';
 
         bgParticles.forEach(p => {
             p.x += p.vx;
@@ -298,10 +295,10 @@ function initBgParticles() {
     animBg();
 }
 
-// Main Simulation Loop
+// Main Canvas Render Loop
 function renderLoop() {
-    const w = mainCanvas.width;
-    const h = mainCanvas.height;
+    const w = mainCanvas.width || 600;
+    const h = mainCanvas.height || 380;
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
 
     mainCtx.clearRect(0, 0, w, h);
@@ -319,18 +316,16 @@ function renderLoop() {
 
     // Pressure Gradient Overlay
     if (state.showPressure) {
-        // Low pressure (above)
         const topGrad = mainCtx.createRadialGradient(cx, cy - 25, 5, cx, cy - 25, 80);
-        topGrad.addColorStop(0, state.isStalled ? 'rgba(255, 69, 58, 0.2)' : 'rgba(41, 151, 255, 0.2)');
+        topGrad.addColorStop(0, state.isStalled ? 'rgba(239, 68, 68, 0.22)' : 'rgba(59, 130, 246, 0.22)');
         topGrad.addColorStop(1, 'transparent');
         mainCtx.fillStyle = topGrad;
         mainCtx.beginPath();
         mainCtx.arc(cx, cy - 25, 80, 0, Math.PI * 2);
         mainCtx.fill();
 
-        // High pressure (below)
         const botGrad = mainCtx.createRadialGradient(cx, cy + 25, 5, cx, cy + 25, 70);
-        botGrad.addColorStop(0, 'rgba(255, 159, 10, 0.15)');
+        botGrad.addColorStop(0, 'rgba(245, 158, 11, 0.18)');
         botGrad.addColorStop(1, 'transparent');
         mainCtx.fillStyle = botGrad;
         mainCtx.beginPath();
@@ -338,32 +333,32 @@ function renderLoop() {
         mainCtx.fill();
     }
 
-    // Airfoil Drawing
+    // Airfoil Wing Drawing
     mainCtx.save();
     mainCtx.translate(cx, cy);
     mainCtx.rotate((-state.aoa * Math.PI) / 180);
 
     mainCtx.beginPath();
-    mainCtx.moveTo(-80, 0);
-    mainCtx.bezierCurveTo(-35, -24, 25, -20, 80, 0);
-    mainCtx.bezierCurveTo(25, 8, -35, 6, -80, 0);
+    mainCtx.moveTo(-90, 0);
+    mainCtx.bezierCurveTo(-40, -28, 30, -24, 90, 0);
+    mainCtx.bezierCurveTo(30, 10, -40, 8, -90, 0);
     mainCtx.closePath();
 
-    mainCtx.fillStyle = isDark ? '#2c2c2e' : '#e5e5ea';
-    mainCtx.strokeStyle = isDark ? '#f5f5f7' : '#1d1d1f';
+    mainCtx.fillStyle = isDark ? '#2d313e' : '#e5e7eb';
+    mainCtx.strokeStyle = isDark ? '#f3f4f6' : '#111827';
     mainCtx.lineWidth = 2;
     mainCtx.fill();
     mainCtx.stroke();
 
     mainCtx.restore();
 
-    // Vectors
+    // Force Vectors Overlay
     if (state.showVectors) {
-        const liftScale = Math.min(state.lift * 0.7, 120);
-        drawArrow(mainCtx, cx, cy, cx, cy - liftScale, isDark ? '#2997ff' : '#0066cc', 'Lift: ' + state.lift.toFixed(1) + ' kN');
+        const liftScale = Math.min(state.lift * 0.6, 120);
+        drawArrow(mainCtx, cx, cy, cx, cy - liftScale, isDark ? '#3b82f6' : '#2563eb', 'Lift: ' + state.lift.toFixed(1) + ' kN');
 
         const dragScale = Math.min(state.drag * 3.0, 100);
-        drawArrow(mainCtx, cx, cy, cx - dragScale, cy, isDark ? '#ff9f0a' : '#ff9500', 'Drag: ' + state.drag.toFixed(1) + ' kN');
+        drawArrow(mainCtx, cx, cy, cx - dragScale, cy, isDark ? '#f59e0b' : '#d97706', 'Drag: ' + state.drag.toFixed(1) + ' kN');
     }
 
     requestAnimationFrame(renderLoop);
@@ -401,9 +396,8 @@ function drawArrow(ctx, fx, fy, tx, ty, color, label) {
 // Live Graph Rendering
 function renderGraphs() {
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-    const textColor = isDark ? '#86868b' : '#86868b';
-    const gridColor = isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)';
-    const strokeColor = isDark ? '#2997ff' : '#0066cc';
+    const gridColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)';
+    const strokeColor = isDark ? '#3b82f6' : '#2563eb';
 
     renderGraph('graph-cl-aoa', (ctx, w, h) => {
         drawGrid(ctx, w, h, gridColor);
@@ -420,16 +414,15 @@ function renderGraphs() {
         }
         ctx.stroke();
 
-        // Marker point
         const curPx = 30 + ((state.aoa + 5) / 30) * (w - 40);
         const curPy = (h - 20) - (state.cL / 1.8) * (h - 30);
-        drawPoint(ctx, curPx, curPy, isDark ? '#ff9f0a' : '#ff9500');
+        drawPoint(ctx, curPx, curPy, isDark ? '#f59e0b' : '#d97706');
     });
 
     renderGraph('graph-drag-speed', (ctx, w, h) => {
         drawGrid(ctx, w, h, gridColor);
         ctx.beginPath();
-        ctx.strokeStyle = isDark ? '#ff9f0a' : '#ff9500';
+        ctx.strokeStyle = isDark ? '#f59e0b' : '#d97706';
         ctx.lineWidth = 2;
 
         for (let spd = 40; spd <= 600; spd += 10) {
@@ -451,7 +444,7 @@ function renderGraphs() {
     renderGraph('graph-efficiency', (ctx, w, h) => {
         drawGrid(ctx, w, h, gridColor);
         ctx.beginPath();
-        ctx.strokeStyle = isDark ? '#30d158' : '#34c759';
+        ctx.strokeStyle = isDark ? '#10b981' : '#059669';
         ctx.lineWidth = 2;
 
         for (let a = -2; a <= 20; a += 0.5) {
@@ -468,7 +461,7 @@ function renderGraphs() {
 
         const curPx = 30 + ((state.aoa + 2) / 22) * (w - 40);
         const curPy = (h - 20) - Math.max(0, state.ldRatio / 25) * (h - 30);
-        drawPoint(ctx, curPx, curPy, isDark ? '#ff9f0a' : '#ff9500');
+        drawPoint(ctx, curPx, curPy, isDark ? '#f59e0b' : '#d97706');
     });
 }
 
