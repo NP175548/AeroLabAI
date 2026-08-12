@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AeroLab — Interactive Aerodynamics & Flight Simulator</title>
+    <title>AeroLab — Aerodynamics & Flight Simulator</title>
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-    <!-- KaTeX for crisp LaTeX Math Rendering -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+    <!-- KaTeX for crisp math formula rendering -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
     <!-- Lucide Icons -->
@@ -17,21 +17,17 @@
 </head>
 <body>
 
-    <!-- Dynamic Particle Header Background -->
-    <canvas id="bg-canvas"></canvas>
-
     <!-- Navigation Header -->
     <header class="navbar-container">
         <nav class="navbar">
             <div class="nav-brand">
-                <span class="logo-text">Aero<span class="highlight">Lab</span></span>
+                <span class="brand-text">Aero<span class="highlight">Lab</span></span>
             </div>
             
             <ul class="nav-links">
-                <li><a href="#hero" class="active">Overview</a></li>
-                <li><a href="#simulator">Simulator</a></li>
+                <li><a href="#simulator" class="active">Simulator</a></li>
+                <li><a href="#variables">Variables</a></li>
                 <li><a href="#graphs">Performance</a></li>
-                <li><a href="#presets">Aircraft</a></li>
                 <li><a href="#education">Theory</a></li>
             </ul>
 
@@ -39,67 +35,15 @@
                 <button id="theme-toggle" class="icon-btn" aria-label="Toggle Theme">
                     <i data-lucide="moon" id="theme-icon"></i>
                 </button>
-                <a href="#simulator" class="btn btn-primary btn-glow">Launch Simulator</a>
             </div>
         </nav>
     </header>
 
-    <!-- Hero Section -->
-    <section id="hero" class="hero-section">
-        <div class="hero-content">
-            <div class="badge-pill">
-                <span class="badge-dot"></span> Aerodynamic Physics Engine
-            </div>
-            <h1 class="hero-title">Master the Science of <br><span class="gradient-text">Aerodynamic Flight</span></h1>
-            <p class="hero-subtitle">
-                An interactive physics platform combining real-time fluid dynamics, wing lift visualizers, and flight performance analytics.
-            </p>
-
-            <div class="hero-cta-group">
-                <a href="#simulator" class="btn btn-primary btn-lg btn-glow"><i data-lucide="play"></i> Open Simulator</a>
-                <a href="#education" class="btn btn-secondary btn-lg">Explore Physics</a>
-            </div>
-
-            <!-- Key Metric Cards -->
-            <div class="hero-stats-grid">
-                <div class="stat-card glass-panel">
-                    <div class="stat-header">Lift Coefficient (C<sub>L</sub>)</div>
-                    <div class="stat-value" id="hero-cl-val">0.80</div>
-                    <div class="stat-foot">Real-time dynamic calculation</div>
-                </div>
-                <div class="stat-card glass-panel">
-                    <div class="stat-header">Lift-to-Drag Ratio (L/D)</div>
-                    <div class="stat-value" id="hero-ld-val">18.1</div>
-                    <div class="stat-foot">Glide efficiency metric</div>
-                </div>
-                <div class="stat-card glass-panel">
-                    <div class="stat-header">Critical Stall Angle (α<sub>crit</sub>)</div>
-                    <div class="stat-value highlight-red">15.0°</div>
-                    <div class="stat-foot">Boundary separation limit</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="hero-visual glass-panel">
-            <div class="canvas-header-bar">
-                <span class="status-indicator live"></span>
-                <span class="canvas-title">NACA 2412 Flow Field</span>
-            </div>
-            <canvas id="hero-wing-canvas"></canvas>
-            <div class="canvas-legend">
-                <span class="legend-item"><span class="dot high-speed"></span> Low Pressure (Top)</span>
-                <span class="legend-item"><span class="dot low-speed"></span> High Pressure (Bottom)</span>
-                <span class="legend-item"><span class="dot vector-lift"></span> Lift Force (L)</span>
-                <span class="legend-item"><span class="dot vector-drag"></span> Drag Force (D)</span>
-            </div>
-        </div>
-    </section>
-
     <!-- Main Interactive Simulator Section -->
     <section id="simulator" class="simulator-section">
         <div class="section-header center">
-            <h2 class="section-title">Aerodynamic Simulator</h2>
-            <p class="section-subtitle">Adjust parameters to see real-time changes in flow streams, pressure gradients, and force vectors.</p>
+            <h1 class="section-title">Aerodynamic Simulator</h1>
+            <p class="section-subtitle">Adjust parameters to observe real-time airflow, pressure gradients, and aerodynamic force vectors.</p>
         </div>
 
         <div class="simulator-grid">
@@ -110,7 +54,7 @@
                     <button id="reset-params" class="text-btn"><i data-lucide="rotate-ccw"></i> Reset</button>
                 </div>
 
-                <!-- Aircraft Type Quick Presets -->
+                <!-- Aircraft Type Presets -->
                 <div class="preset-selector-group">
                     <label class="input-label">Aircraft Configuration</label>
                     <div class="preset-buttons">
@@ -121,7 +65,7 @@
                     </div>
                 </div>
 
-                <!-- Slider Inputs -->
+                <!-- Sliders -->
                 <div class="slider-group">
                     <div class="slider-label-row">
                         <label for="slider-speed">Airspeed (v)</label>
@@ -179,7 +123,7 @@
                 <div class="canvas-wrapper">
                     <canvas id="sim-main-canvas"></canvas>
                     
-                    <!-- Stall Alert Display -->
+                    <!-- Stall Alert Overlay -->
                     <div id="stall-warning" class="stall-overlay hidden">
                         <div class="stall-content">
                             <i data-lucide="alert-triangle"></i>
@@ -193,16 +137,18 @@
                 <div class="math-hud-bar">
                     <div class="math-box">
                         <div class="math-title">Lift Force Equation</div>
-                        <div class="math-tex" id="katex-lift">L = 1/2 · ρ · v² · S · C<sub>L</sub></div>
+                        <div class="math-tex" id="katex-lift"></div>
+                        <div class="math-result" id="calc-lift-val">L = 0 kN</div>
                     </div>
                     <div class="math-box">
                         <div class="math-title">Drag Force Equation</div>
-                        <div class="math-tex" id="katex-drag">D = 1/2 · ρ · v² · S · C<sub>D</sub></div>
+                        <div class="math-tex" id="katex-drag"></div>
+                        <div class="math-result" id="calc-drag-val">D = 0 kN</div>
                     </div>
                 </div>
             </div>
 
-            <!-- Telemetry Dashboard Right Column -->
+            <!-- Telemetry Dashboard -->
             <div class="telemetry-panel glass-panel">
                 <h3>Flight Telemetry</h3>
 
@@ -252,18 +198,100 @@
         </div>
     </section>
 
+    <!-- Variable Reference Guide Section -->
+    <section id="variables" class="variables-section">
+        <div class="section-header center">
+            <h2 class="section-title">Variable Reference Guide</h2>
+            <p class="section-subtitle">A detailed breakdown of all physical variables used in the lift and drag equations.</p>
+        </div>
+
+        <div class="variables-grid">
+            <div class="variable-card glass-panel">
+                <div class="var-symbol" id="symbol-rho"></div>
+                <div class="var-details">
+                    <h4>Air Density (ρ)</h4>
+                    <p>The mass of air per unit volume. Higher air density at lower altitudes generates greater dynamic pressure and lift.</p>
+                    <span class="var-unit">Standard Unit: kg/m³</span>
+                </div>
+            </div>
+
+            <div class="variable-card glass-panel">
+                <div class="var-symbol" id="symbol-v"></div>
+                <div class="var-details">
+                    <h4>Airspeed (v)</h4>
+                    <p>The velocity of oncoming air relative to the wing. Lift increases with the square of speed ($v^2$).</p>
+                    <span class="var-unit">Standard Unit: m/s (or km/h)</span>
+                </div>
+            </div>
+
+            <div class="variable-card glass-panel">
+                <div class="var-symbol" id="symbol-s"></div>
+                <div class="var-details">
+                    <h4>Reference Wing Area (S)</h4>
+                    <p>The total surface area of the wing projected onto a flat plane. Larger surface areas capture more fluid momentum.</p>
+                    <span class="var-unit">Standard Unit: m²</span>
+                </div>
+            </div>
+
+            <div class="variable-card glass-panel">
+                <div class="var-symbol" id="symbol-cl"></div>
+                <div class="var-details">
+                    <h4>Lift Coefficient (C<sub>L</sub>)</h4>
+                    <p>A dimensionless coefficient that expresses the ratio of lift pressure to dynamic pressure, dependent on wing shape and Angle of Attack.</p>
+                    <span class="var-unit">Dimensionless</span>
+                </div>
+            </div>
+
+            <div class="variable-card glass-panel">
+                <div class="var-symbol" id="symbol-cd"></div>
+                <div class="var-details">
+                    <h4>Drag Coefficient (C<sub>D</sub>)</h4>
+                    <p>A dimensionless coefficient quantifying the air resistance of an object, combining parasitic skin friction and induced drag.</p>
+                    <span class="var-unit">Dimensionless</span>
+                </div>
+            </div>
+
+            <div class="variable-card glass-panel">
+                <div class="var-symbol" id="symbol-alpha"></div>
+                <div class="var-details">
+                    <h4>Angle of Attack (α)</h4>
+                    <p>The angle between the wing's chord line and the oncoming relative airflow. Increasing α increases lift up to the stall point.</p>
+                    <span class="var-unit">Standard Unit: Degrees (°)</span>
+                </div>
+            </div>
+
+            <div class="variable-card glass-panel">
+                <div class="var-symbol" id="symbol-q"></div>
+                <div class="var-details">
+                    <h4>Dynamic Pressure (q)</h4>
+                    <p>The kinetic energy per unit volume of the moving fluid stream, calculated as $q = \frac{1}{2} \rho v^2$.</p>
+                    <span class="var-unit">Standard Unit: Pascals (Pa)</span>
+                </div>
+            </div>
+
+            <div class="variable-card glass-panel">
+                <div class="var-symbol" id="symbol-ld"></div>
+                <div class="var-details">
+                    <h4>Lift-to-Drag Ratio (L/D)</h4>
+                    <p>A measure of aerodynamic efficiency. Higher values indicate greater distance traveled per unit of energy lost to drag.</p>
+                    <span class="var-unit">Dimensionless Ratio</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- Performance Graphs Section -->
     <section id="graphs" class="graphs-section">
         <div class="section-header center">
             <h2 class="section-title">Performance Curves</h2>
-            <p class="section-subtitle">Dynamic plots updated live based on simulator flight parameters.</p>
+            <p class="section-subtitle">Real-time plots updated continuously from flight telemetry.</p>
         </div>
 
         <div class="graphs-grid">
             <div class="graph-card glass-panel">
                 <div class="graph-header">
                     <h4>Lift Coefficient (C<sub>L</sub>) vs Angle of Attack (α)</h4>
-                    <span class="tag">Stall threshold at 15°</span>
+                    <span class="tag">Stall point at α = 15°</span>
                 </div>
                 <div class="graph-canvas-container">
                     <canvas id="graph-cl-aoa"></canvas>
@@ -292,69 +320,11 @@
         </div>
     </section>
 
-    <!-- Aircraft Presets Deep Dive -->
-    <section id="presets" class="presets-section">
-        <div class="section-header center">
-            <h2 class="section-title">Aircraft Profiles</h2>
-            <p class="section-subtitle">Compare performance metrics across different airframe designs.</p>
-        </div>
-
-        <div class="presets-cards-grid">
-            <div class="airframe-card glass-panel" data-select-preset="jet">
-                <div class="airframe-badge">COMMERCIAL LINER</div>
-                <h3>Boeing 787</h3>
-                <ul class="airframe-specs">
-                    <li><span>Wing Area:</span> <strong>325 m²</strong></li>
-                    <li><span>Cruising Speed:</span> <strong>900 km/h</strong></li>
-                    <li><span>Aspect Ratio:</span> <strong>9.6</strong></li>
-                    <li><span>Typical Mass:</span> <strong>220,000 kg</strong></li>
-                </ul>
-                <button class="btn btn-secondary btn-full">Load Configuration</button>
-            </div>
-
-            <div class="airframe-card glass-panel" data-select-preset="fighter">
-                <div class="airframe-badge accent-purple">TACTICAL FIGHTER</div>
-                <h3>Lockheed F-22</h3>
-                <ul class="airframe-specs">
-                    <li><span>Wing Area:</span> <strong>78 m²</strong></li>
-                    <li><span>Max Speed:</span> <strong>2,410 km/h</strong></li>
-                    <li><span>Aspect Ratio:</span> <strong>2.36</strong></li>
-                    <li><span>Typical Mass:</span> <strong>29,000 kg</strong></li>
-                </ul>
-                <button class="btn btn-secondary btn-full">Load Configuration</button>
-            </div>
-
-            <div class="airframe-card glass-panel" data-select-preset="glider">
-                <div class="airframe-badge accent-green">SAILPLANE</div>
-                <h3>Schleicher ASG 29</h3>
-                <ul class="airframe-specs">
-                    <li><span>Wing Area:</span> <strong>10.5 m²</strong></li>
-                    <li><span>Glide Ratio:</span> <strong>50:1</strong></li>
-                    <li><span>Aspect Ratio:</span> <strong>27.0</strong></li>
-                    <li><span>Typical Mass:</span> <strong>450 kg</strong></li>
-                </ul>
-                <button class="btn btn-secondary btn-full">Load Configuration</button>
-            </div>
-
-            <div class="airframe-card glass-panel" data-select-preset="cargo">
-                <div class="airframe-badge accent-orange">HEAVY CARGO</div>
-                <h3>Antonov An-124</h3>
-                <ul class="airframe-specs">
-                    <li><span>Wing Area:</span> <strong>628 m²</strong></li>
-                    <li><span>Cruising Speed:</span> <strong>800 km/h</strong></li>
-                    <li><span>Aspect Ratio:</span> <strong>8.5</strong></li>
-                    <li><span>Typical Mass:</span> <strong>392,000 kg</strong></li>
-                </ul>
-                <button class="btn btn-secondary btn-full">Load Configuration</button>
-            </div>
-        </div>
-    </section>
-
     <!-- Educational Theory Section -->
     <section id="education" class="education-section">
         <div class="section-header center">
             <h2 class="section-title">Aerodynamic Principles</h2>
-            <p class="section-subtitle">Understanding how fluid motion creates aerodynamic forces.</p>
+            <p class="section-subtitle">Understanding fluid dynamics and wing physics.</p>
         </div>
 
         <div class="edu-grid">
@@ -362,44 +332,18 @@
                 <div class="edu-icon"><i data-lucide="wind"></i></div>
                 <h3>1. Bernoulli's Principle</h3>
                 <p>
-                    As air velocity increases over the curved upper surface of an airfoil, static pressure decreases relative to the flatter lower surface, creating an upward pressure differential.
+                    As air accelerates over the curved upper surface of an airfoil, dynamic pressure rises and static pressure drops, producing an upward pressure differential force.
                 </p>
-                <div class="edu-equation">
-                    P + ½ · ρ · v² = Constant
-                </div>
+                <div class="edu-equation" id="katex-bernoulli"></div>
             </div>
 
             <div class="edu-card glass-panel">
                 <div class="edu-icon"><i data-lucide="arrow-down-right"></i></div>
                 <h3>2. Newton's Third Law</h3>
                 <p>
-                    The wing's Angle of Attack deflects oncoming air downward (downwash). By Newton's Third Law, deflecting air downward creates an equal and opposite upward reaction force on the wing.
+                    The angled wing deflects oncoming air mass downwards (downwash). An equal and opposite upward reaction force is exerted on the airframe.
                 </p>
-                <div class="edu-equation">
-                    F<sub>lift</sub> = - (Δp<sub>air</sub> / Δt)
-                </div>
-            </div>
-
-            <div class="edu-card glass-panel">
-                <div class="edu-icon"><i data-lucide="alert-circle"></i></div>
-                <h3>3. Angle of Attack & Stall</h3>
-                <p>
-                    Increasing the Angle of Attack increases lift up to a critical point (α<sub>crit</sub> ≈ 15°). Beyond this threshold, smooth airflow detaches from the top surface, resulting in a stall.
-                </p>
-                <div class="edu-equation">
-                    C<sub>D,induced</sub> = C<sub>L</sub>² / (π · AR · e)
-                </div>
-            </div>
-
-            <div class="edu-card glass-panel">
-                <div class="edu-icon"><i data-lucide="sliders"></i></div>
-                <h3>4. Aspect Ratio & Design</h3>
-                <p>
-                    High Aspect Ratio wings (gliders) minimize induced drag for high endurance flight. Low Aspect Ratio wings (fighters) offer structural strength and fast roll rates for agility.
-                </p>
-                <div class="edu-equation">
-                    Aspect Ratio (AR) = b² / S
-                </div>
+                <div class="edu-equation" id="katex-newton"></div>
             </div>
         </div>
     </section>
@@ -408,30 +352,16 @@
     <footer class="footer-container">
         <div class="footer-content glass-panel">
             <div class="footer-brand">
-                <span class="logo-text">Aero<span class="highlight">Lab</span></span>
-                <p>Interactive Aerodynamics & Flight Simulator Engine.</p>
+                <span class="brand-text">Aero<span class="highlight">Lab</span></span>
+                <p>Interactive Aerodynamics & Flight Physics Engine.</p>
             </div>
-            <div class="footer-links">
-                <div class="link-group">
-                    <h5>Modules</h5>
-                    <a href="#simulator">Simulator</a>
-                    <a href="#graphs">Performance Curves</a>
-                    <a href="#presets">Airframes</a>
-                </div>
-                <div class="link-group">
-                    <h5>Physics</h5>
-                    <a href="#education">Bernoulli Principle</a>
-                    <a href="#education">Downwash</a>
-                    <a href="#education">Stall Physics</a>
-                </div>
+            <div class="footer-bottom-text">
+                Made By: Neel Patel
             </div>
-        </div>
-        <div class="footer-bottom">
-            <p>Made By: Neel Patel</p>
         </div>
     </footer>
 
-    <!-- Script File -->
+    <!-- Main JavaScript File -->
     <script src="script.js"></script>
 </body>
 </html>
