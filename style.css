@@ -1,18 +1,19 @@
 /* ==========================================================================
-   AeroLab Modern Clean Design - Premium Dark/Light Aesthetic
+   AeroLab Physics Engine Modern Styling
+   Made By: Neel Patel
    ========================================================================== */
 
 :root[data-theme="dark"] {
-  --bg-main: #0b0e14;
-  --bg-panel: rgba(18, 24, 38, 0.7);
-  --bg-panel-solid: #121826;
-  --bg-input: rgba(255, 255, 255, 0.08);
+  --bg-main: #0a0d14;
+  --bg-panel: rgba(16, 22, 36, 0.75);
+  --bg-panel-solid: #101624;
+  --bg-input: rgba(255, 255, 255, 0.07);
 
-  --border-light: rgba(255, 255, 255, 0.1);
+  --border-light: rgba(255, 255, 255, 0.12);
   --border-active: #00d2ff;
 
   --text-primary: #f0f4f8;
-  --text-muted: #8a9bb0;
+  --text-muted: #8b9cb0;
   --text-heading: #ffffff;
 
   --cyan: #00d2ff;
@@ -22,17 +23,17 @@
   --green: #2ed573;
 
   --gradient-btn: linear-gradient(135deg, #00d2ff 0%, #3b82f6 100%);
-  --shadow-glow: 0 4px 20px rgba(0, 210, 255, 0.25);
-  --shadow-card: 0 10px 30px rgba(0, 0, 0, 0.4);
+  --shadow-glow: 0 4px 20px rgba(0, 210, 255, 0.28);
+  --shadow-card: 0 10px 30px rgba(0, 0, 0, 0.45);
 }
 
 :root[data-theme="light"] {
-  --bg-main: #f4f7fc;
-  --bg-panel: rgba(255, 255, 255, 0.85);
+  --bg-main: #f0f4f9;
+  --bg-panel: rgba(255, 255, 255, 0.88);
   --bg-panel-solid: #ffffff;
-  --bg-input: rgba(0, 0, 0, 0.06);
+  --bg-input: rgba(0, 0, 0, 0.05);
 
-  --border-light: rgba(0, 0, 0, 0.1);
+  --border-light: rgba(0, 0, 0, 0.12);
   --border-active: #0077ff;
 
   --text-primary: #1e293b;
@@ -46,11 +47,11 @@
   --green: #16a34a;
 
   --gradient-btn: linear-gradient(135deg, #0077ff 0%, #2563eb 100%);
-  --shadow-glow: 0 4px 20px rgba(0, 119, 255, 0.2);
-  --shadow-card: 0 10px 30px rgba(0, 0, 0, 0.06);
+  --shadow-glow: 0 4px 20px rgba(0, 119, 255, 0.22);
+  --shadow-card: 0 10px 30px rgba(0, 0, 0, 0.07);
 }
 
-/* Reset & Layout Rules */
+/* Reset & Base Rules */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -81,17 +82,18 @@ body {
   pointer-events: none;
 }
 
+/* Perfectly Centered Page Wrapper */
 .page-container {
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 24px;
 }
 
-/* Glassmorphism Containers */
+/* Glassmorphism Panels */
 .glass-panel {
   background: var(--bg-panel);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
   border: 1px solid var(--border-light);
   border-radius: 16px;
   box-shadow: var(--shadow-card);
@@ -102,16 +104,16 @@ body {
   border-color: var(--border-active);
 }
 
-/* Section Headings */
+/* Section Titles */
 .section-title {
   text-align: center;
   margin: 0 auto 40px auto;
-  max-width: 700px;
+  max-width: 720px;
 }
 
 .section-title h2 {
   font-size: 2.2rem;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--text-heading);
   margin-bottom: 10px;
   letter-spacing: -0.02em;
@@ -123,7 +125,7 @@ body {
   line-height: 1.5;
 }
 
-/* Navbar & Interactive Nav Buttons */
+/* Navigation Bar */
 .navbar {
   position: sticky;
   top: 0;
@@ -157,24 +159,26 @@ body {
 
 .nav-links {
   display: flex;
-  gap: 12px;
+  gap: 10px;
 }
 
-/* Interactive Pill Navigation Buttons */
+/* Cool Interactive Navigation Buttons */
 .nav-btn {
   text-decoration: none;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   font-weight: 600;
   color: var(--text-muted);
   padding: 8px 18px;
   border-radius: 30px;
   background: var(--bg-input);
   border: 1px solid var(--border-light);
-  transition: all 0.25s ease;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
+  align-items: center;
 }
 
 .nav-btn:hover {
-  color: #fff;
+  color: #ffffff;
   background: var(--cyan);
   border-color: var(--cyan);
   box-shadow: var(--shadow-glow);
@@ -266,7 +270,7 @@ body {
 
 /* Hero Section */
 .hero-section {
-  padding: 80px 0 60px 0;
+  padding: 70px 0 50px 0;
   text-align: center;
   display: flex;
   flex-direction: column;
@@ -286,13 +290,13 @@ body {
 }
 
 .hero-title {
-  font-size: 3.2rem;
+  font-size: 3.1rem;
   font-weight: 800;
   color: var(--text-heading);
   letter-spacing: -0.03em;
   line-height: 1.15;
   margin-bottom: 16px;
-  max-width: 800px;
+  max-width: 820px;
 }
 
 .hero-subtitle {
@@ -306,7 +310,7 @@ body {
 .hero-cta {
   display: flex;
   gap: 16px;
-  margin-bottom: 50px;
+  margin-bottom: 45px;
 }
 
 .hero-stats {
@@ -314,7 +318,7 @@ body {
   grid-template-columns: repeat(3, 1fr);
   gap: 20px;
   width: 100%;
-  max-width: 800px;
+  max-width: 820px;
 }
 
 .stat-card {
@@ -335,14 +339,14 @@ body {
   color: var(--text-muted);
 }
 
-/* Simulator Layout */
+/* Simulator Grid */
 .simulator-section {
-  padding: 40px 0 80px 0;
+  padding: 40px 0 70px 0;
 }
 
 .simulator-grid {
   display: grid;
-  grid-template-columns: 1fr 340px;
+  grid-template-columns: 1fr 350px;
   gap: 24px;
   align-items: start;
 }
@@ -379,7 +383,7 @@ body {
 
 .mode-btn.active, .mode-btn:hover {
   background: var(--cyan);
-  color: #fff;
+  color: #ffffff;
   border-color: var(--cyan);
 }
 
@@ -414,8 +418,8 @@ body {
 .canvas-wrapper {
   position: relative;
   width: 100%;
-  height: 400px;
-  background: #06090f;
+  height: 420px;
+  background: #05080e;
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid var(--border-light);
@@ -511,19 +515,19 @@ body {
   padding: 24px;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 16px;
 }
 
 .sim-controls h3 {
   font-size: 1.1rem;
   color: var(--text-heading);
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .control-item {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .control-header {
@@ -534,10 +538,6 @@ body {
 }
 
 .control-readout {
-  color: var(--cyan);
-}
-
-input[type="range"] {
   appearance: none;
   -webkit-appearance: none;
   width: 100%;
@@ -549,6 +549,18 @@ input[type="range"] {
 
 input[type="range"]::-webkit-slider-thumb {
   appearance: none;
+}
+
+input[type="range"] {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--bg-input);
+  outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   width: 18px;
   height: 18px;
@@ -567,15 +579,15 @@ input[type="range"]::-webkit-slider-thumb {
 
 .equilibrium-card {
   background: var(--bg-input);
-  padding: 16px;
+  padding: 14px;
   border-radius: 10px;
   border: 1px solid var(--border-light);
-  margin-top: 6px;
+  margin-top: 4px;
 }
 
 .equilibrium-card h4 {
-  font-size: 0.88rem;
-  margin-bottom: 10px;
+  font-size: 0.85rem;
+  margin-bottom: 8px;
   color: var(--text-heading);
 }
 
@@ -583,7 +595,7 @@ input[type="range"]::-webkit-slider-thumb {
   display: flex;
   justify-content: space-between;
   font-size: 0.78rem;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   color: var(--text-muted);
 }
 
@@ -596,7 +608,7 @@ input[type="range"]::-webkit-slider-thumb {
   height: 6px;
   background: rgba(255, 255, 255, 0.1);
   border-radius: 3px;
-  margin-top: 10px;
+  margin-top: 8px;
   overflow: hidden;
 }
 
@@ -607,9 +619,62 @@ input[type="range"]::-webkit-slider-thumb {
   transition: width 0.3s ease, background-color 0.3s ease;
 }
 
-/* Preset Airframe Section */
+/* Variable Key Section */
+.key-section {
+  padding: 40px 0 70px 0;
+}
+
+.key-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+}
+
+.key-card {
+  padding: 20px;
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.key-symbol {
+  font-family: "Georgia", serif;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--cyan);
+  background: rgba(0, 210, 255, 0.1);
+  border: 1px solid var(--cyan);
+  border-radius: 10px;
+  min-width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.key-info h4 {
+  font-size: 0.98rem;
+  color: var(--text-heading);
+  margin-bottom: 2px;
+}
+
+.key-unit {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--cyan);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.key-info p {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* Preset Section */
 .presets-section {
-  padding: 40px 0 80px 0;
+  padding: 40px 0 70px 0;
 }
 
 .preset-grid {
@@ -671,13 +736,13 @@ input[type="range"]::-webkit-slider-thumb {
 .preset-data li {
   display: flex;
   justify-content: space-between;
-  border-bottom: 1px stroke var(--border-light);
+  border-bottom: 1px solid var(--border-light);
   padding-bottom: 4px;
 }
 
 /* Analytics Section */
 .analytics-section {
-  padding: 40px 0 80px 0;
+  padding: 40px 0 70px 0;
 }
 
 .charts-grid {
@@ -714,7 +779,7 @@ input[type="range"]::-webkit-slider-thumb {
 
 /* Theory Section */
 .theory-section {
-  padding: 40px 0 100px 0;
+  padding: 40px 0 90px 0;
 }
 
 .theory-grid {
@@ -740,17 +805,21 @@ input[type="range"]::-webkit-slider-thumb {
   margin-bottom: 16px;
 }
 
-.math-box {
+.formula-card {
   background: var(--bg-input);
   border: 1px solid var(--border-light);
   padding: 14px;
   border-radius: 8px;
-  font-family: "Courier New", Courier, monospace;
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: var(--cyan);
   text-align: center;
   margin-bottom: 16px;
+}
+
+.formula-text {
+  font-family: "Georgia", serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--cyan);
+  letter-spacing: 0.02em;
 }
 
 .math-variables {
@@ -762,12 +831,18 @@ input[type="range"]::-webkit-slider-thumb {
   gap: 4px;
 }
 
+.math-sym {
+  font-family: "Georgia", serif;
+  font-style: italic;
+  font-weight: 600;
+}
+
 .theory-note {
   font-size: 0.82rem !important;
   margin-bottom: 0 !important;
 }
 
-/* Clean Footer */
+/* Footer */
 .footer {
   border-top: 1px solid var(--border-light);
   background: var(--bg-panel);
@@ -789,9 +864,10 @@ input[type="range"]::-webkit-slider-thumb {
   color: var(--cyan);
 }
 
-/* Responsive Scaling */
+/* Responsive Rules */
 @media (max-width: 1024px) {
   .simulator-grid { grid-template-columns: 1fr; }
+  .key-grid { grid-template-columns: repeat(2, 1fr); }
   .preset-grid { grid-template-columns: repeat(2, 1fr); }
   .charts-grid { grid-template-columns: 1fr; }
   .theory-grid { grid-template-columns: 1fr; }
@@ -802,5 +878,6 @@ input[type="range"]::-webkit-slider-thumb {
   .hero-title { font-size: 2.2rem; }
   .hero-stats { grid-template-columns: 1fr; }
   .metrics-row { grid-template-columns: repeat(2, 1fr); }
+  .key-grid { grid-template-columns: 1fr; }
   .preset-grid { grid-template-columns: 1fr; }
 }

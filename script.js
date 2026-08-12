@@ -1,18 +1,18 @@
 /**
- * AeroLab Physics & Dynamic Visualization Engine
+ * AeroLab Dynamic Physics & Real-Time Visualization Engine
  * Made By: Neel Patel
  */
 
 document.addEventListener("DOMContentLoaded", () => {
-  // Simulator State
+  // Simulator Dynamic State
   const state = {
     airspeed: 150,     // m/s
-    aoa: 5.0,          // degrees
+    aoa: 5.0,          // degrees (+ is pitch up)
     area: 125,         // m²
     weight: 45000,     // kg
     density: 1.225,    // kg/m³
     mode: "all",       // "all", "vectors", "flow"
-    criticalAoA: 15.0,
+    criticalAoA: 15.0, // critical stall angle
 
     lift: 0,
     drag: 0,
@@ -22,15 +22,15 @@ document.addEventListener("DOMContentLoaded", () => {
     isStalled: false
   };
 
-  // Preset Configurations
+  // Airframe Preset Data
   const presets = {
-    passenger: { speed: 250, aoa: 3.0, area: 511, weight: 180000, density: 1.225 },
-    fighter:   { speed: 310, aoa: 6.0, area: 78,  weight: 19700,  density: 1.225 },
-    glider:    { speed: 35,  aoa: 4.5, area: 10.5,weight: 350,    density: 1.225 },
-    cargo:     { speed: 210, aoa: 4.0, area: 353, weight: 120000, density: 1.225 }
+    passenger: { speed: 240, aoa: 3.5, area: 320, weight: 120000, density: 1.225 },
+    fighter:   { speed: 310, aoa: 6.0, area: 75,  weight: 18000,  density: 1.225 },
+    glider:    { speed: 45,  aoa: 4.5, area: 25,  weight: 450,    density: 1.225 },
+    cargo:     { speed: 190, aoa: 4.0, area: 380, weight: 160000, density: 1.225 }
   };
 
-  // DOM Elements
+  // DOM Handles
   const DOM = {
     sliderSpeed: document.getElementById("slider-speed"),
     sliderAoA: document.getElementById("slider-aoa"),
@@ -79,7 +79,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let flowParticles = [];
   let bgParticles = [];
 
-  // Resize Handling & Canvas Sync
+  // Canvas Sizing and Initialization
   function resizeCanvases() {
     const wrapper = DOM.simCanvas.parentElement;
     DOM.simCanvas.width = wrapper.clientWidth;
@@ -99,7 +99,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function initParticles() {
     flowParticles = [];
-    for (let i = 0; i < 160; i++) {
+    for (let i = 0; i < 200; i++) {
       flowParticles.push({
         x: Math.random() * DOM.simCanvas.width,
         y: Math.random() * DOM.simCanvas.height,
@@ -109,49 +109,49 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     bgParticles = [];
-    const count = Math.floor(window.innerWidth / 18);
+    const count = Math.floor(window.innerWidth / 16);
     for (let i = 0; i < count; i++) {
       bgParticles.push({
         x: Math.random() * DOM.bgCanvas.width,
         y: Math.random() * DOM.bgCanvas.height,
-        size: Math.random() * 2,
-        vy: 0.2 + Math.random() * 0.4
+        size: Math.random() * 2.2,
+        vy: 0.2 + Math.random() * 0.5
       });
     }
   }
 
-  // Aerodynamic Physics Calculations
+  // Pure Physical Aerodynamic Calculations
   function computePhysics() {
     const alphaRad = (state.aoa * Math.PI) / 180;
 
-    // Lift Coefficient Curve
+    // Lift Coefficient (Cl) Model with Stall Post-Peak Decay
     if (state.aoa <= state.criticalAoA) {
       state.cl = 2 * Math.PI * (alphaRad + 0.05);
     } else {
-      const stallFactor = (state.aoa - state.criticalAoA) / 10;
+      const stallRatio = (state.aoa - state.criticalAoA) / 10;
       const maxCl = 2 * Math.PI * ((state.criticalAoA * Math.PI / 180) + 0.05);
-      state.cl = maxCl * Math.exp(-stallFactor * 1.2) + Math.sin(2 * alphaRad) * 0.15;
+      state.cl = maxCl * Math.exp(-stallRatio * 1.1) + Math.sin(2 * alphaRad) * 0.12;
     }
 
     state.isStalled = state.aoa > state.criticalAoA;
 
-    // Drag Coefficient Model
+    // Drag Coefficient (Cd) Model: Parasite + Induced + Stall Drag
     const cd0 = 0.02;
     const aspect = 7.5;
-    const oswald = 0.82;
+    const oswald = 0.85;
     const cdi = (state.cl * state.cl) / (Math.PI * oswald * aspect);
-    const stallDrag = state.isStalled ? 0.12 * Math.pow((state.aoa - state.criticalAoA) / 5, 2) : 0;
+    const stallDrag = state.isStalled ? 0.15 * Math.pow((state.aoa - state.criticalAoA) / 4, 1.8) : 0;
 
     state.cd = cd0 + cdi + stallDrag;
 
-    // Force Equations: L = 1/2 * rho * v^2 * S * Cl
+    // Forces Equations: L = 0.5 * rho * v^2 * S * Cl
     const q = 0.5 * state.density * state.airspeed * state.airspeed;
     state.lift = q * state.area * state.cl;
     state.drag = q * state.area * state.cd;
     state.ldRatio = state.drag > 0 ? state.lift / state.drag : 0;
   }
 
-  // Update UI Elements
+  // Update Readouts & Dynamic Flight Status
   function updateUI() {
     computePhysics();
 
@@ -168,30 +168,44 @@ document.addEventListener("DOMContentLoaded", () => {
     DOM.valDrag.textContent = `${dragKN} kN`;
     DOM.valLD.textContent = state.ldRatio.toFixed(1);
 
-    DOM.barLift.style.width = `${Math.min(100, (state.lift / 1800000) * 100)}%`;
-    DOM.barDrag.style.width = `${Math.min(100, (state.drag / 450000) * 100)}%`;
-    DOM.barLD.style.width = `${Math.min(100, (state.ldRatio / 30) * 100)}%`;
+    DOM.barLift.style.width = `${Math.min(100, Math.max(0, (state.lift / 2000000) * 100))}%`;
+    DOM.barDrag.style.width = `${Math.min(100, Math.max(0, (state.drag / 500000) * 100))}%`;
+    DOM.barLD.style.width = `${Math.min(100, Math.max(0, (state.ldRatio / 30) * 100))}%`;
 
-    const weightForceKN = ((state.weight * 9.81) / 1000).toFixed(1);
+    const weightForceN = state.weight * 9.81;
+    const weightForceKN = (weightForceN / 1000).toFixed(1);
     DOM.reqLift.textContent = `${weightForceKN} kN`;
     DOM.genLift.textContent = `${liftKN} kN`;
 
-    const balancePct = Math.min(100, Math.max(0, (state.lift / (state.weight * 9.81)) * 50));
+    // Equilibrium Balance Calculation
+    const liftWeightRatio = state.lift / weightForceN;
+    const balancePct = Math.min(100, Math.max(0, liftWeightRatio * 50));
     DOM.balanceIndicator.style.width = `${balancePct}%`;
 
+    // Flight Status Direction Logic
     if (state.isStalled) {
       DOM.stallAlert.classList.remove("hidden");
-      DOM.valStatus.textContent = "STALL DETECTED";
+      DOM.valStatus.textContent = "STALL / FLOW SEPARATION";
       DOM.valStatus.style.color = "var(--red)";
       DOM.balanceIndicator.style.backgroundColor = "var(--red)";
+    } else if (liftWeightRatio > 1.03) {
+      DOM.stallAlert.classList.add("hidden");
+      DOM.valStatus.textContent = "Ascending Flight (Climbing ▲)";
+      DOM.valStatus.style.color = "var(--cyan)";
+      DOM.balanceIndicator.style.backgroundColor = "var(--cyan)";
+    } else if (liftWeightRatio < 0.97) {
+      DOM.stallAlert.classList.add("hidden");
+      DOM.valStatus.textContent = "Descending Flight (Sinking ▼)";
+      DOM.valStatus.style.color = "var(--gold)";
+      DOM.balanceIndicator.style.backgroundColor = "var(--gold)";
     } else {
       DOM.stallAlert.classList.add("hidden");
-      DOM.valStatus.textContent = "Normal Flight";
+      DOM.valStatus.textContent = "Level Equilibrium Cruise";
       DOM.valStatus.style.color = "var(--green)";
       DOM.balanceIndicator.style.backgroundColor = "var(--green)";
     }
 
-    // Update Hero Stats
+    // Hero Stats Updates
     const mach = (state.airspeed / 343).toFixed(2);
     const heroq = ((0.5 * state.density * state.airspeed * state.airspeed) / 1000).toFixed(1);
     document.getElementById("hero-mach").textContent = mach;
@@ -200,20 +214,25 @@ document.addEventListener("DOMContentLoaded", () => {
     renderCharts();
   }
 
-  // Draw Wing Simulation Canvas
+  // Draw Simulation Wind Tunnel Viewport
   function renderSimulation() {
     const w = DOM.simCanvas.width;
     const h = DOM.simCanvas.height;
     const cx = w / 2;
-    const cy = h / 2 + 15;
+    const cy = h / 2 + 10;
 
     simCtx.clearRect(0, 0, w, h);
 
+    // Speed multiplier driven by Airspeed slider
     const speedRatio = state.airspeed / 150;
+    // Wing Area scaling factor driven by Wing Area slider
+    const areaScale = Math.sqrt(state.area / 125);
+    // Air Density opacity visual cue
+    const densityOpacity = Math.min(1.0, Math.max(0.3, state.density / 1.225));
 
-    // Draw Flow Particles
+    // Render Streamlines / Flow Particles
     flowParticles.forEach(p => {
-      p.x += p.speed * speedRatio * 2;
+      p.x += p.speed * speedRatio * 2.2;
       if (p.x > w) p.x = 0;
 
       const dx = p.x - cx;
@@ -221,40 +240,47 @@ document.addEventListener("DOMContentLoaded", () => {
       const distSq = dx * dx + dy * dy;
 
       let py = p.y;
-      if (distSq < 15000) {
-        const inf = Math.exp(-distSq / 10000);
-        const shift = state.aoa * 2.2 * (dx / 180);
+      if (distSq < 22000) {
+        const inf = Math.exp(-distSq / 14000);
+        // Positive AoA causes downstream downwash deflection (air pushed down)
+        const downwash = state.aoa * 1.8 * (dx > 0 ? (dx / 160) : 0);
 
         if (state.isStalled && dx > 0) {
-          py += Math.sin(p.x * 0.12 + Date.now() * 0.01) * 14 * inf;
+          py += Math.sin(p.x * 0.15 + Date.now() * 0.015) * 18 * inf + downwash;
         } else {
-          py -= (inf * 30) + shift;
+          py -= (inf * 28 * Math.sign(state.aoa || 1)) - downwash;
         }
       }
 
-      simCtx.fillStyle = state.isStalled ? "rgba(255, 71, 87, 0.7)" : "rgba(0, 210, 255, 0.7)";
+      simCtx.fillStyle = state.isStalled 
+        ? `rgba(255, 71, 87, ${0.7 * densityOpacity})` 
+        : `rgba(0, 210, 255, ${0.65 * densityOpacity})`;
       simCtx.beginPath();
       simCtx.arc(p.x, py, p.size, 0, Math.PI * 2);
       simCtx.fill();
     });
 
     // Draw Airfoil Profile
+    // Note: Canvas Y goes down. Positive Angle of Attack = Nose pitched UP = Counter-Clockwise rotation (-aoa)
     simCtx.save();
     simCtx.translate(cx, cy);
     simCtx.rotate((-state.aoa * Math.PI) / 180);
 
+    const chord = 180 * areaScale;
     simCtx.beginPath();
-    const chord = 180;
     for (let i = 0; i <= chord; i += 2) {
       const xc = i / chord;
+      // NACA 4-Digit Symmetric/Cambered Thickness profile
       const yt = 5 * 0.12 * (0.2969 * Math.sqrt(xc) - 0.1260 * xc - 0.3516 * Math.pow(xc, 2) + 0.2843 * Math.pow(xc, 3) - 0.1015 * Math.pow(xc, 4)) * chord;
-      if (i === 0) simCtx.moveTo(i - chord / 2, -yt);
-      else simCtx.lineTo(i - chord / 2, -yt);
+      const camber = 0.04 * (1 - xc) * xc * chord; // Curved upper camber
+      if (i === 0) simCtx.moveTo(i - chord / 2, -yt - camber);
+      else simCtx.lineTo(i - chord / 2, -yt - camber);
     }
     for (let i = chord; i >= 0; i -= 2) {
       const xc = i / chord;
       const yt = 5 * 0.12 * (0.2969 * Math.sqrt(xc) - 0.1260 * xc - 0.3516 * Math.pow(xc, 2) + 0.2843 * Math.pow(xc, 3) - 0.1015 * Math.pow(xc, 4)) * chord;
-      simCtx.lineTo(i - chord / 2, yt);
+      const camber = 0.04 * (1 - xc) * xc * chord;
+      simCtx.lineTo(i - chord / 2, yt - camber);
     }
     simCtx.closePath();
 
@@ -269,21 +295,35 @@ document.addEventListener("DOMContentLoaded", () => {
 
     simCtx.restore();
 
-    // Render Vectors
+    // Render Vector Force Indicators
     if (state.mode === "all" || state.mode === "vectors") {
-      const liftPx = Math.min(140, (state.lift / 1000000) * 100);
-      if (liftPx > 4) drawVector(cx, cy, cx, cy - liftPx, "#00d2ff", "Lift");
+      // Lift Vector (Points UP -> -Y in canvas coordinates)
+      const liftPx = Math.min(150, (state.lift / 1200000) * 110);
+      if (Math.abs(liftPx) > 2) {
+        drawVector(cx, cy, cx, cy - liftPx, "#00d2ff", `Lift (${(state.lift / 1000).toFixed(0)} kN)`);
+      }
 
-      const dragPx = Math.min(120, (state.drag / 250000) * 80);
-      if (dragPx > 4) drawVector(cx, cy, cx + dragPx, cy, "#ff4757", "Drag");
+      // Drag Vector (Points Right -> +X in canvas coordinates)
+      const dragPx = Math.min(130, (state.drag / 300000) * 90);
+      if (dragPx > 2) {
+        drawVector(cx, cy, cx + dragPx, cy, "#ff4757", `Drag (${(state.drag / 1000).toFixed(0)} kN)`);
+      }
+
+      // Weight Gravity Vector (Points DOWN -> +Y in canvas coordinates)
+      const weightN = state.weight * 9.81;
+      const weightPx = Math.min(150, (weightN / 1200000) * 110);
+      if (weightPx > 2) {
+        drawVector(cx, cy, cx, cy + weightPx, "#ffb703", `Weight (${(weightN / 1000).toFixed(0)} kN)`);
+      }
     }
 
     requestAnimationFrame(renderSimulation);
   }
 
+  // Vector Arrow Drawing Function
   function drawVector(fx, fy, tx, ty, color, label) {
     const angle = Math.atan2(ty - fy, tx - fx);
-    const headlen = 8;
+    const headlen = 9;
 
     simCtx.strokeStyle = color;
     simCtx.fillStyle = color;
@@ -301,42 +341,45 @@ document.addEventListener("DOMContentLoaded", () => {
     simCtx.fill();
 
     simCtx.font = "bold 11px sans-serif";
-    simCtx.fillText(label, tx + 6, ty + 4);
+    simCtx.fillText(label, tx + 8, ty + 4);
   }
 
-  // Draw Analytics Telemetry Graphs
+  // Draw Real-Time Performance Telemetry Plots
   function renderCharts() {
+    // Cl vs Alpha
     drawPlot(clCtx, DOM.chartCl, (a) => {
       const rad = (a * Math.PI) / 180;
       if (a <= state.criticalAoA) return 2 * Math.PI * (rad + 0.05);
       const stallRatio = (a - state.criticalAoA) / 10;
       const maxCl = 2 * Math.PI * ((state.criticalAoA * Math.PI / 180) + 0.05);
-      return maxCl * Math.exp(-stallRatio * 1.2) + Math.sin(2 * rad) * 0.15;
-    }, -5, 25, 0, 2.0, state.aoa, state.cl);
+      return maxCl * Math.exp(-stallRatio * 1.1) + Math.sin(2 * rad) * 0.12;
+    }, -10, 25, -0.5, 2.2, state.aoa, state.cl);
 
+    // Drag vs Velocity
     drawPlot(dragCtx, DOM.chartDrag, (v) => {
       const q = 0.5 * state.density * v * v;
       return (q * state.area * state.cd) / 1000;
-    }, 20, 350, 0, (state.drag / 1000) * 1.4 || 400, state.airspeed, state.drag / 1000);
+    }, 20, 350, 0, (state.drag / 1000) * 1.5 || 500, state.airspeed, state.drag / 1000);
 
+    // L/D vs Alpha
     drawPlot(ldCtx, DOM.chartLd, (a) => {
       const rad = (a * Math.PI) / 180;
-      let clVal = (a <= state.criticalAoA) ? 2 * Math.PI * (rad + 0.05) : (2 * Math.PI * ((state.criticalAoA * Math.PI / 180) + 0.05)) * Math.exp(-((a - state.criticalAoA)/10) * 1.2);
-      const cdiVal = (clVal * clVal) / (Math.PI * 0.82 * 7.5);
-      const cdVal = 0.02 + cdiVal + (a > state.criticalAoA ? 0.12 : 0);
-      return clVal / cdVal;
-    }, -5, 25, 0, 25, state.aoa, state.ldRatio);
+      let clVal = (a <= state.criticalAoA) ? 2 * Math.PI * (rad + 0.05) : (2 * Math.PI * ((state.criticalAoA * Math.PI / 180) + 0.05)) * Math.exp(-((a - state.criticalAoA)/10) * 1.1);
+      const cdiVal = (clVal * clVal) / (Math.PI * 0.85 * 7.5);
+      const cdVal = 0.02 + cdiVal + (a > state.criticalAoA ? 0.15 : 0);
+      return cdVal > 0 ? clVal / cdVal : 0;
+    }, -10, 25, -5, 30, state.aoa, state.ldRatio);
   }
 
   function drawPlot(ctx, canvas, func, minX, maxX, minY, maxY, curX, curY) {
     const w = canvas.width;
     const h = canvas.height;
-    const pad = 24;
+    const pad = 26;
 
     ctx.clearRect(0, 0, w, h);
 
-    // Axes
-    ctx.strokeStyle = "rgba(255,255,255,0.1)";
+    // Plot Axes
+    ctx.strokeStyle = "rgba(255,255,255,0.12)";
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(pad, pad);
@@ -344,12 +387,12 @@ document.addEventListener("DOMContentLoaded", () => {
     ctx.lineTo(w - pad, h - pad);
     ctx.stroke();
 
-    // Curve
+    // Plot Curve Line
     ctx.strokeStyle = "#00d2ff";
     ctx.lineWidth = 2;
     ctx.beginPath();
 
-    const steps = 50;
+    const steps = 60;
     for (let i = 0; i <= steps; i++) {
       const x = minX + (i / steps) * (maxX - minX);
       const y = func(x);
@@ -362,7 +405,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     ctx.stroke();
 
-    // Active Indicator Point
+    // Live Indicator Marker
     const px = pad + ((curX - minX) / (maxX - minX)) * (w - 2 * pad);
     const py = (h - pad) - ((curY - minY) / (maxY - minY)) * (h - 2 * pad);
 
@@ -372,13 +415,16 @@ document.addEventListener("DOMContentLoaded", () => {
     ctx.fill();
   }
 
-  // Background Particles Engine
+  // Background Particle Animation
   function renderBackground() {
     bgCtx.clearRect(0, 0, DOM.bgCanvas.width, DOM.bgCanvas.height);
-    bgCtx.fillStyle = "rgba(255, 255, 255, 0.15)";
+    
+    // Background atmosphere visual density
+    const bgOpacity = Math.min(0.25, 0.08 * (state.density / 1.225));
+    bgCtx.fillStyle = `rgba(255, 255, 255, ${bgOpacity})`;
 
     bgParticles.forEach(p => {
-      p.y -= p.vy;
+      p.y -= p.vy * (state.airspeed / 100);
       if (p.y < 0) p.y = DOM.bgCanvas.height;
       bgCtx.beginPath();
       bgCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
@@ -388,7 +434,7 @@ document.addEventListener("DOMContentLoaded", () => {
     requestAnimationFrame(renderBackground);
   }
 
-  // Bind Event Listeners
+  // Slider & Button Input Event Listeners
   function bindEvents() {
     window.addEventListener("resize", resizeCanvases);
 
@@ -436,7 +482,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Initialization
+  // App Initialization
   resizeCanvases();
   bindEvents();
   updateUI();
